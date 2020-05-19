@@ -282,14 +282,14 @@ for i = 1:length(OPTIONS.BemFiles)
     vInner = bst_bsxfun(@minus, TessMat.Vertices, bfs_center(:)');
     % Check if any dipole is outside of the innermost layer
     iDipInside = find(~inpolyhd(vDipoles, vInner, TessMat.Faces));
-    if ~isempty(iDipInside)
-        errMsg = sprintf(['Some dipoles are outside the BEM layers (%d dipoles).\n' ...
-                          'The leadfield for these dipoles is probably incorrect.\n\n'], length(iDipInside));
-        if strcmpi(OPTIONS.HeadModelType, 'surface')
-            errMsg = [errMsg, 'To fix the cortex surface:', 10, 'Right-click on the surface file > Force inside skull.'];
-        end
-        disp([10 'WARNING: ' errMsg 10]);
-    end
+%     if ~isempty(iDipInside)
+%         errMsg = sprintf(['Some dipoles are outside the BEM layers (%d dipoles).\n' ...
+%                           'The leadfield for these dipoles is probably incorrect.\n\n'], length(iDipInside));
+%         if strcmpi(OPTIONS.HeadModelType, 'surface')
+%             errMsg = [errMsg, 'To fix the cortex surface:', 10, 'Right-click on the surface file > Force inside skull.'];
+%         end
+%         disp([10 'WARNING: ' errMsg 10]);
+%     end
 end
 % Write geometry file
 om_write_geom(geomfile, trifiles, OPTIONS.BemNames);

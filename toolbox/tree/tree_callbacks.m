@@ -1188,6 +1188,8 @@ switch (lower(action))
                     gui_component('MenuItem', jPopup, [], 'Merge layers', IconLoader.ICON_FEM, [], @(h,ev)bst_call(@fem_mergelayers, filenameFull));
                     gui_component('MenuItem', jPopup, [], 'Extract surfaces', IconLoader.ICON_FEM, [], @(h,ev)bst_call(@import_femlayers, iSubject, filenameFull, 'BSTFEM', 1));
                     gui_component('MenuItem', jPopup, [], 'Convert tetra/hexa', IconLoader.ICON_FEM, [], @(h,ev)bst_call(@process_generate_fem, 'SwitchHexaTetra', filenameRelative));
+                    gui_component('MenuItem', jPopup, [], 'Generate FEM tensor', IconLoader.ICON_FEM, [], @(h,ev)bst_generate_fem_tensor(iSubject));
+                    gui_component('MenuItem', jPopup, [], 'Display FEM tensor', IconLoader.ICON_FEM, [], @(h,ev)bst_view_tensor(iSubject));
                 end
                 
 %% ===== POPUP: NOISECOV =====

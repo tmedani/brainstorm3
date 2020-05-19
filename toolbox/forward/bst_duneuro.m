@@ -335,6 +335,7 @@ disp(['DUNEURO> System call: ' callStr]);
 tic;
 % Call DUNEuro
 [status,cmdout] = system(callStr);
+tdn = toc;
 if (status ~= 0)
     disp('DUNEURO> Error log:');
     disp(cmdout);
