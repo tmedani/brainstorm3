@@ -91,6 +91,7 @@ function [bstPanelNew, panelName] = CreatePanel(isMeg, isEeg, isEcog, isSeeg, is
         jComboMethodEEG.addItem(BstListItem('eeg_3sphereberg', '', '3-shell sphere', []));
         jComboMethodEEG.addItem(BstListItem('openmeeg', '', 'OpenMEEG BEM', []));
         jComboMethodEEG.addItem(BstListItem('duneuro', '', 'DUNEuro FEM', []));
+        jComboMethodEEG.addItem(BstListItem('eeg_sphereAniso', '', 'Sphere aniso OM', []));
         jComboMethodEEG.setSelectedIndex(1);
     else
         jCheckMethodEEG = [];
@@ -449,7 +450,8 @@ function [OutputFiles, errMessage] = ComputeHeadModel(iStudies, sMethod) %#ok<DE
         % ===== BEST FITTING SPHERE =====
         % BestFittingSphere : .HeadCenter, .Radii, .Conductivity
         % ONLY FOR methods : meg_sphere, eeg_3sphereberg
-        isBFS = strcmpi(OPTIONS.MEGMethod, 'meg_sphere') || strcmpi(OPTIONS.EEGMethod, 'eeg_3sphereberg');
+        isBFS = strcmpi(OPTIONS.MEGMethod, 'meg_sphere') || strcmpi(OPTIONS.EEGMethod, 'eeg_3sphereberg')...
+                                                    || strcmpi(OPTIONS.EEGMethod, 'eeg_sphereAniso');
         if isBFS && ~isfield(sMethod, 'HeadCenter')
             % Is the BFS already defined for this anatomy ?
             iBfs = find(strcmpi(sSubject.FileName, BfsSubjects));
@@ -508,6 +510,8 @@ function [OutputFiles, errMessage] = ComputeHeadModel(iStudies, sMethod) %#ok<DE
                 if strcmpi(OPTIONS.MEGMethod, 'meg_sphere')
                     BFS.Radii = Radius;
                 elseif strcmpi(OPTIONS.EEGMethod, 'eeg_3sphereberg')
+                    BFS.Radii = Radius .* [BFSProperties(4:5), 1];
+                elseif strcmpi(OPTIONS.EEGMethod, 'eeg_sphereAniso')
                     BFS.Radii = Radius .* [BFSProperties(4:5), 1];
                 else
                     error('Invalid method...');

@@ -1190,6 +1190,7 @@ switch (lower(action))
                     gui_component('MenuItem', jPopup, [], 'Convert tetra/hexa', IconLoader.ICON_FEM, [], @(h,ev)bst_call(@process_generate_fem, 'SwitchHexaTetra', filenameRelative));
                     gui_component('MenuItem', jPopup, [], 'Generate FEM tensor', IconLoader.ICON_FEM, [], @(h,ev)bst_generate_fem_tensor(iSubject));
                     gui_component('MenuItem', jPopup, [], 'Display FEM tensor', IconLoader.ICON_FEM, [], @(h,ev)bst_view_tensor(iSubject));
+                    gui_component('MenuItem', jPopup, [], 'Cut FEM Mesh', IconLoader.ICON_FEM, [], @(h,ev)bst_cut_femMesh(iSubject));
                 end
                 
 %% ===== POPUP: NOISECOV =====

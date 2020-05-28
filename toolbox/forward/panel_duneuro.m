@@ -114,6 +114,9 @@ function [bstPanelNew, panelName] = CreatePanel(sProcess, sFiles) %#ok<DEFNU>
             % Default selection of layers
             jCheckLayer(i).setSelected(OPTIONS.FemSelect(i));
         end
+        jCheckLayer(nLayers+1) = gui_component('checkbox', jPanelLayers, 'br', 'Isotropic', [], [], @(h,ev)UpdatePanel(), []);
+        jCheckLayer(nLayers+2) = gui_component('checkbox', jPanelLayers, 'br', 'UseTensor', [], [], @(h,ev)UpdatePanel(), []);
+        
     c.gridy = 1;
     jPanelLeft.add(jPanelLayers, c);
 
@@ -363,10 +366,13 @@ function s = GetPanelContents() %#ok<DEFNU>
     s = duneuro_defaults();
     
     % FEM layers
-    for i = 1:length(ctrl.jCheckLayer)
+    for i = 1: length(ctrl.jCheckLayer)-2
         s.FemSelect(i) = ctrl.jCheckLayer(i).isSelected();
         s.FemCond(i) = str2double(char(ctrl.jTextCond(i).getText()));
     end
+    s.Isotropic = ctrl.jCheckLayer(length(ctrl.jCheckLayer)-1).isSelected();
+    s.UseTensor = ctrl.jCheckLayer(length(ctrl.jCheckLayer)).isSelected();
+
 %     % FEM method type
 %     if ctrl.jRadioFemTypeFit.isSelected()
 %         s.FemType = 'fitted';

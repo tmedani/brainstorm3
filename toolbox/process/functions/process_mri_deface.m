@@ -153,7 +153,7 @@ function [DefacedFiles, errMsg] = Compute(MriFiles, OPTIONS)
     % Default options
     Def_OPTIONS = struct(...
         'Method',        'spm', ...
-        'MNIplane',      [-0.00036476, -0.01128325, 0.00980049, 0.001025580777], ...
+        'MNIplane',      [-0.00036476, -0.0075, 0.00780049, 0.001025580777], ... % [-0.00036476, -0.01128325, 0.00980049, 0.001025580777] 
         'isOverwrite',   0, ...
         'isInteractive', 1, ...
         'isDefaceHead',  1);
@@ -210,8 +210,10 @@ function [DefacedFiles, errMsg] = Compute(MriFiles, OPTIONS)
                     iCut = cutPlane(1)*i + cutPlane(2)*j + cutPlane(3)*k + cutPlane(4) < 0;
                 end
                 % Replicate over multiple volumes
-                if (mriSize(4) > 1)
+                if (length(mriSize)> 3)
+                    if (mriSize(4) > 1) 
                     iCut = repmat(iCut, [1 1 1 mriSize(4)]);
+                    end
                 end
                 % Set to zero the voxels below the plane
                 sMri.Cube(iCut) = 0;

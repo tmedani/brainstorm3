@@ -1,6 +1,6 @@
 function [OPTIONS, errMessage] = bst_headmodeler(OPTIONS)
 % BST_HEADMODELER: Solution to the MEG/EEG forward problem.
-% 
+%
 % USAGE:  [OPTIONS, errMessage] = bst_headmodeler(OPTIONS);   % Compute head model
 %         [OPTIONS, errMessage] = bst_headmodeler;            % Just return the default OPTIONS structure
 %
@@ -20,9 +20,9 @@ function [OPTIONS, errMessage] = bst_headmodeler(OPTIONS)
 %         - 'os_meg'    : MEG overlapping sphere forward model
 %         - 'openmeeg'  : OpenMEEG forward model
 %     .EEGMethod:  Method used to compute the forward model for EEG sensors.
-%         - 'eeg_3sphereberg' : EEG forward modeling with a set of 3 concentric spheres (Scalp, Skull, Brain/CSF) 
+%         - 'eeg_3sphereberg' : EEG forward modeling with a set of 3 concentric spheres (Scalp, Skull, Brain/CSF)
 %         - 'openmeeg'        : OpenMEEG forward model
-%     .SEEGMethod:    'openmeeg' only 
+%     .SEEGMethod:    'openmeeg' only
 %     .ECOGMethod:    'openmeeg' only
 %
 %     ======= METHODS OPTIONS =============================================
@@ -48,17 +48,17 @@ function [OPTIONS, errMessage] = bst_headmodeler(OPTIONS)
 %      .GridOptions  : Necessary information to compute the grid if the above fields are not available (see bst_sourcegrid.m)
 %
 % OUTPUT:
-%      - Returns the OPTIONS structure with updated fields following the call to BST_HEADMODELER.  
+%      - Returns the OPTIONS structure with updated fields following the call to BST_HEADMODELER.
 
 % @=============================================================================
 % This function is part of the Brainstorm software:
 % https://neuroimage.usc.edu/brainstorm
-% 
+%
 % Copyright (c)2000-2020 University of Southern California & McGill University
 % This software is distributed under the terms of the GNU General Public License
 % as published by the Free Software Foundation. Further details on the GPLv3
 % license can be found at http://www.gnu.org/copyleft/gpl.html.
-% 
+%
 % FOR RESEARCH PURPOSES ONLY. THE SOFTWARE IS PROVIDED "AS IS," AND THE
 % UNIVERSITY OF SOUTHERN CALIFORNIA AND ITS COLLABORATORS DO NOT MAKE ANY
 % WARRANTY, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF
@@ -95,7 +95,7 @@ Def_OPTIONS = struct(...
     'HeadFile',           [], ...
     'InnerSkullFile',     [], ...
     'OuterSkullFile',     [], ...
-    'GridOptions',        [], ... 
+    'GridOptions',        [], ...
     'GridLoc',            [], ...
     'GridOrient',         [], ...
     'GridAtlas',          [], ...
@@ -136,7 +136,7 @@ isBFS = strcmpi(OPTIONS.MEGMethod, 'meg_sphere') || strcmpi(OPTIONS.EEGMethod, '
 % Computation of parameters of the best-fitting sphere --------------------------------------------------------------------------------------------------------------
 if isBFS && (isempty(OPTIONS.HeadCenter) || isempty(OPTIONS.Radii) || isempty(OPTIONS.Conductivity))
     errMessage = ['Following options must be defined: HeadCenter, Radii, Conductivity.', 10, ...
-                  'Please use Brainstorm GUI to compute the forward model.'];
+        'Please use Brainstorm GUI to compute the forward model.'];
     OPTIONS = [];
     return;
 end
@@ -182,17 +182,17 @@ end
 % IGNORE 4D REFERENCES (MAGNES SENSORS): Only CTF ref matters
 if ~isempty(iRef) && ~isempty(strfind(lower(OPTIONS.Channel(iRef(1)).Comment), 'magnes'))
     iRef = [];
-	% Display warning
+    % Display warning
     disp([10 '******************************************************************************************' 10 ...
-          '******************************************************************************************' 10 ...
-          '*** WARNING: 4D reference sensors are not taken into account in the forward model.     ***' 10 ...
-          '***    Due to a bug in the 4D calibration software, the position of the reference      ***' 10 ...
-          '***    are commonly wrong, we cannot compute an accurate forward model for them.       ***' 10 ...
-          '***    To bypass this limitation and apply the coefficient matrix (MegRefCoef) to the  ***' 10 ... 
-          '***    forward model, you can comment out the line "iRef = [];", next to this warning  ***' 10 ...
-          '***    in file bst_heamodeler (lines 182-198).                                         ***' 10 ...
-          '******************************************************************************************' 10 ...
-          '******************************************************************************************' 10]);
+        '******************************************************************************************' 10 ...
+        '*** WARNING: 4D reference sensors are not taken into account in the forward model.     ***' 10 ...
+        '***    Due to a bug in the 4D calibration software, the position of the reference      ***' 10 ...
+        '***    are commonly wrong, we cannot compute an accurate forward model for them.       ***' 10 ...
+        '***    To bypass this limitation and apply the coefficient matrix (MegRefCoef) to the  ***' 10 ...
+        '***    forward model, you can comment out the line "iRef = [];", next to this warning  ***' 10 ...
+        '***    in file bst_heamodeler (lines 182-198).                                         ***' 10 ...
+        '******************************************************************************************' 10 ...
+        '******************************************************************************************' 10]);
 end
 % Get number of coils for each sensor
 nCoilsPerSensor = cellfun(@(c)size(c,2), {OPTIONS.Channel.Loc});
@@ -201,7 +201,7 @@ OPTIONS.iMeg  = [iMeg iRef];
 OPTIONS.iEeg  = iEeg;
 OPTIONS.iEcog = iEcog;
 OPTIONS.iSeeg = iSeeg;
-    
+
 
 %% ===== OUTPUT FILENAME ===========================================================================
 %  =================================================================================================
@@ -336,16 +336,16 @@ switch (OPTIONS.HeadModelType)
                     % Fixed/Loose orientation
                     if isequal(sAtlas.Scouts(is).Region(3),'C') || isequal(sAtlas.Scouts(is).Region(3),'L')
                         SrcOri = sCortex.VertNormals(iVert,:);
-                    % Free orientation: Fill with zeros
+                        % Free orientation: Fill with zeros
                     else
                         SrcOri = 0 * SrcLoc;
                     end
-                % Volume
-                case 'V'  
+                    % Volume
+                case 'V'
                     SrcLoc = dba_anatmodel(iVert, sAtlas.Scouts(is), sCortex, 'vol');
                     SrcOri = 0 * SrcLoc;
-                % DBA
-                case 'D'  
+                    % DBA
+                case 'D'
                     [SrcLoc, SrcOri, sAtlas.Scouts(is), iVertModif] = dba_get_model( sAtlas.Scouts(is), sCortex );
                     % If modifications where done on the cortex atlases: we have to update them
                     if ~isempty(iVertModif)
@@ -353,7 +353,7 @@ switch (OPTIONS.HeadModelType)
                         sCortex.Atlas(iAtlas).Scouts(is).Vertices = iVertModif;
                         isCortexModif = 1;
                     end
-                % Exclude
+                    % Exclude
                 case 'X'
                     SrcLoc = [];
                     SrcOri = [];
@@ -399,7 +399,7 @@ nv = size(OPTIONS.GridLoc,1);
 % Load innerskull surface
 if ~isempty(OPTIONS.InnerSkullFile)
     sSurfInner = bst_memory('LoadSurface', OPTIONS.InnerSkullFile);
-% Create innerskull surface based on the cortex surface
+    % Create innerskull surface based on the cortex surface
 else
     sSurfInner = tess_envelope(OPTIONS.CortexFile, 'convhull', 1082, .003);
     if isempty(sSurfInner)
@@ -415,9 +415,9 @@ if ~isempty(allLoc)
     % Warning if there are some sensors inside
     if ~isempty(iVertInside)
         errMessage = ['Some EEG or MEG sensors are located inside the brain volume.' 10 ...
-                      'You should check the positions of the sensors and the type of the channels.' 10 10 ...
-                      'Position: Right-click on the channel file > MRI registration > Edit.' 10 ...
-                      'Type: Right-click on the channel file > Edit channel file.'];
+            'You should check the positions of the sensors and the type of the channels.' 10 10 ...
+            'Position: Right-click on the channel file > MRI registration > Edit.' 10 ...
+            'Type: Right-click on the channel file > Edit channel file.'];
         OPTIONS = [];
         bst_progress('stop');
         return;
@@ -425,8 +425,8 @@ if ~isempty(allLoc)
 end
 % Initialize empty gain matrix
 Gain = NaN * zeros(length(OPTIONS.Channel), Dims * nv);
-        
-        
+
+
 %% ===== COMPUTE: OPENMEEG =====
 if ismember('openmeeg', {OPTIONS.MEGMethod, OPTIONS.EEGMethod, OPTIONS.ECOGMethod, OPTIONS.SEEGMethod})
     % If OpenMEEG options not defined: Let user edit them
@@ -447,7 +447,7 @@ if ismember('openmeeg', {OPTIONS.MEGMethod, OPTIONS.EEGMethod, OPTIONS.ECOGMetho
     % Start progress bar
     bst_progress('start', 'Head modeler', 'Starting OpenMEEG...');
     % Split in blocks
-    if (nBlocks > 1)      
+    if (nBlocks > 1)
         % Backup copy of the GridLoc field
         bakGridLoc = OPTIONS.GridLoc;
         % Call OpenMEEG: Process by blocks
@@ -467,7 +467,7 @@ if ismember('openmeeg', {OPTIONS.MEGMethod, OPTIONS.EEGMethod, OPTIONS.ECOGMetho
         end
         % Restore GridLoc
         OPTIONS.GridLoc = bakGridLoc;
-    % Do not split
+        % Do not split
     else
         [Gain_om, errMessage] = bst_openmeeg(OPTIONS);
         if isempty(Gain_om)
@@ -520,12 +520,12 @@ end
 
 %% ===== COMPUTE: BRAINSTORM HEADMODELS =====
 if (~isempty(OPTIONS.MEGMethod) && ~ismember(OPTIONS.MEGMethod, {'openmeeg', 'duneuro'})) || ...
-   (~isempty(OPTIONS.EEGMethod) && ~ismember(OPTIONS.EEGMethod, {'openmeeg', 'duneuro'}))
-
+        (~isempty(OPTIONS.EEGMethod) && ~ismember(OPTIONS.EEGMethod, {'openmeeg', 'duneuro'}))
+    
     % ===== DEFINE SPHERES FOR EACH SENSOR =====
     Param(1:length(OPTIONS.Channel)) = deal(struct(...
-            'Center', [], ...
-            'Radii',  []));
+        'Center', [], ...
+        'Radii',  []));
     iAllMeg = [iRef, iMeg];
     % Overlapping spheres
     if strcmpi(OPTIONS.MEGMethod, 'os_meg')
@@ -543,17 +543,17 @@ if (~isempty(OPTIONS.MEGMethod) && ~ismember(OPTIONS.MEGMethod, {'openmeeg', 'du
             [Param(iRef).Center] = deal(mean([Param(iMeg).Center],2));
             [Param(iRef).Radii]  = deal(mean([Param(iMeg).Radii],2));
         end
-    % Other types
+        % Other types
     else
         [Param.Center] = deal(OPTIONS.HeadCenter);
         [Param.Radii]  = deal(OPTIONS.Radii);
     end
-
+    
     % ===== COMPUTE GAIN MATRIX ======
     % Start progress bar
     BlockSize = 2000;
     bst_progress('start', 'Head modeler', 'Computing gain matrix...', 0, ceil(nv/BlockSize));
-    % Loop on all blocks 
+    % Loop on all blocks
     for iBlock = 1:BlockSize:nv
         bst_progress('inc', 1);
         iSrc = (0:BlockSize-1) + iBlock;
@@ -584,16 +584,49 @@ if (~isempty(OPTIONS.MEGMethod) && ~ismember(OPTIONS.MEGMethod, {'openmeeg', 'du
             strHistory = sprintf(', Cond: %1.3f %1.3f %1.3f, Radii: %1.3f %1.3f %1.3f', OPTIONS.Conductivity, OPTIONS.Radii);
         end
     end
+    
+            % ===== EEG anisotrop =====
+        if strcmpi(OPTIONS.EEGMethod, 'eeg_sphereAniso')
+            % ask user for the ratio lon/tran
+            [res, isCancel] = java_dialog(  'input' , 'ratio longitidunal conductivity/transverse conductivity inner  =  ' ,...
+                'Conductivity Ratio ' ,[],'10');
+            if isCancel;         return;    end
+            ratio = str2double( res);
+            sigma_tissu = OPTIONS.Conductivity(1);
+            sigma_rad = ((sigma_tissu^3)*ratio^2)^(1/3);
+            sigma_tang = ((sigma_tissu^3)/ratio)^(1/3);
+            
+            %             Re = bst_bsxfun(@minus, Re, OPTIONS.HeadCenter(:)');
+            %             Rq = bst_bsxfun(@minus, Rq, OPTIONS.HeadCenter(:)');
+            
+            % [ HeadCenter, Radius ] = bst_bfs(   [OPTIONS.Channel(iEeg).Loc]' );
+            % OPTIONS.HeadCenter= HeadCenter;
+            cfg.channelLoc =   bst_bsxfun(@minus,  [OPTIONS.Channel(iEeg).Loc]',OPTIONS.HeadCenter(:)');
+            cfg.sourceSpace = bst_bsxfun(@minus, OPTIONS.GridLoc(:,:), OPTIONS.HeadCenter(:)');
+            
+            cfg.isotropic = 0;
+            cfg.conductivity =  OPTIONS.Conductivity;
+            cfg.conductivity_radial = [sigma_rad OPTIONS.Conductivity(2:end)];
+            cfg.conductivity_tangential = [sigma_tang OPTIONS.Conductivity(2:end)];
+            
+            cfg.sphereRadii = OPTIONS.Radii;
+            cfg.lfAvrgRef = 1;
+            lf = bst_compute_lf_openmeeg_aniso_eeg(cfg);
+            
+            %             EegLoc = [OPTIONS.Channel(iEeg).Loc]';
+            Gain(iEeg,:) = lf;%bst_eeg_sph(OPTIONS.GridLoc(iSrc,:), EegLoc, OPTIONS.HeadCenter, OPTIONS.Radii, OPTIONS.Conductivity);
+            strHistory = sprintf(', Cond rad: %1.3f %1.3f %1.3f, Cond tang: %1.3f %1.3f %1.3f, Radii: %1.3f %1.3f %1.3f', cfg.conductivity_radial , cfg.conductivity_tangential , OPTIONS.Radii);
+        end
 else
     Param = [];
-end    
+end
 % Check for errors: NaN values in the Gain matrix
 if (nnz(isnan(Gain(iEeg,:))) > 0)  && ~isempty(OPTIONS.EEGMethod)  || ...
-   (nnz(isnan(Gain(iMeg,:))) > 0)  && ~isempty(OPTIONS.MEGMethod)  || ...
-   (nnz(isnan(Gain(iEcog,:))) > 0) && ~isempty(OPTIONS.ECOGMethod) || ...
-   (nnz(isnan(Gain(iSeeg,:))) > 0) && ~isempty(OPTIONS.SEEGMethod)
+        (nnz(isnan(Gain(iMeg,:))) > 0)  && ~isempty(OPTIONS.MEGMethod)  || ...
+        (nnz(isnan(Gain(iEcog,:))) > 0) && ~isempty(OPTIONS.ECOGMethod) || ...
+        (nnz(isnan(Gain(iSeeg,:))) > 0) && ~isempty(OPTIONS.SEEGMethod)
     errMessage = ['An unknown error occurred in the computation of the head model:' 10 ...
-                  'NaN values found for valid sensors in the Gain matrix'];
+        'NaN values found for valid sensors in the Gain matrix'];
     OPTIONS = [];
     return;
 end
@@ -621,7 +654,7 @@ end
 %         Gain(iGainSensors,:) = Projector(iGainSensors,iGainSensors) * Gain(iGainSensors,:);
 %     end
 % end
-   
+
 
 %% ===== SAVE HEAD MODEL =====
 % Progress bar

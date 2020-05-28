@@ -180,8 +180,13 @@ end
 % Write mesh model
 MeshFile = fullfile(TmpDir, MeshFile);
 out_fem(FemMat, MeshFile);
-
-
+% temporary version
+if cfg.UseTensor
+cfg.node = FemMat.Vertices;
+cfg.elem = [FemMat.Elements FemMat.Tissue];
+cfg.head_filename = MeshFile ;
+bst_write_cauchy_geometry(cfg)
+end
 %% ===== SOURCE MODEL =====
 % Write the source/dipole file
 DipoleFile = fullfile(TmpDir, 'dipole_model.txt');
@@ -231,8 +236,18 @@ if ~cfg.UseTensor
     fclose(fid);
 % With tensor (isotropic or anisotropic)
 else
-    CondFile = fullfile(TmpDir, 'conductivity_model.knw');
-    out_fem_knw(cfg.elem, cfg.CondTensor, CondFile);
+    CondFile = fullfile(TmpDir, 'conductivity_model.knw'); 
+    % Transformation matrix  and tensor mapping on each direction
+    CondTensor = zeros(length(FemMat.Elements),6) ;
+    for ind =1 : length(FemMat.Elements)
+        T1 = FemMat.tensors.eigen_vector{ind};        
+        temp = T1 * FemMat.tensors.eigen_value{ind} * T1';
+%         CondTensor(ind,:) = [temp(1) temp(5) temp(9) temp(4) temp(7) temp(8)];
+        CondTensor(ind,:) = [temp(1) temp(5) temp(9) temp(4) temp(8) temp(7)];
+
+    end
+    % write the tensors 
+    out_fem_knw(FemMat, CondTensor, CondFile);
 end
 
 
