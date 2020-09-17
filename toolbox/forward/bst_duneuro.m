@@ -154,7 +154,9 @@ else
 end
 % Write mesh model
 MeshFile = fullfile(TmpDir, MeshFile);
-out_fem(FemMat, MeshFile);
+FemMatx = FemMat;
+FemMatx.Elements = uint64(FemMat.Elements); FemMatx.Tissue = uint64(FemMat.Tissue);
+out_fem(FemMatx, MeshFile);
 
 
 %% ====== SOURCE SPACE =====
@@ -179,6 +181,13 @@ switch (cfg.HeadModelType)
         % Force all the dipoles within the GM layer
         iGM = find(panel_duneuro('CheckType', FemMat.TissueLabels, 'gray'), 1);
         iWM = find(panel_duneuro('CheckType', FemMat.TissueLabels, 'white'), 1);
+        % apply same test in the case where wm or gm are not found.
+       if (iGM || iWM) == 0
+        iGM = find(panel_duneuro('CheckType', FemMat.TissueLabels, 'inner'), 1);
+       end
+       if (iGM || iWM) == 0
+           iGM = find(panel_duneuro('CheckType', FemMat.TissueLabels, 'csf'), 1);
+       end
         if cfg.SrcForceInGM && ~isempty(iGM)
             % Install iso2mesh if needed
             if ~exist('iso2meshver', 'file') || ~isdir(bst_fullfile(bst_fileparts(which('iso2meshver')), 'doc'))
@@ -206,12 +215,12 @@ switch (cfg.HeadModelType)
                 disp(['DUNEURO> Warning: ' num2str(length(iVertOut)) ' dipole(s) outside of the GM.']);
             end
             
-            % If there is a white matter layer: find the dipoles inside the WM and move them outside to the GM
+            % If there is a white matter layer: find the dipoles inside the WM and move them outside to the WM
             if ~isempty(iWM)
-                % Extract GM envelope
+                % Extract WM envelope
                 wmFaces = volface(FemMat.Elements(FemMat.Tissue == iWM,:));
                 [wmVert, wmFaces] = removeisolatednode(FemMat.Vertices, wmFaces);
-                % Find the dipoles outside of the GM envelope
+                % Find the dipoles inside of the WM envelope
                 iVertWM = find(inpolyhedron(wmFaces, wmVert, cfg.GridLoc));
                 if ~isempty(iVertWM)
                     disp(['DUNEURO> Warning: ' num2str(length(iVertWM)) ' dipole(s) inside the WM.']);
@@ -233,12 +242,12 @@ switch (cfg.HeadModelType)
                 
                 % OPTION #2: Gradually move the vertex towards the center of the centroid, until it is located inside the element
                 % Move the vertex towards the center until it is inside the element
-                nFix = 10;
+                nFix = 3;
                 for iFix = 1:nFix
                     tmpVert = (nFix - iFix)/nFix * cfg.GridLoc(iVertOut(i),:) + iFix/nFix * ElemCenter(iTarget,:);
                     if inpolyhedron(targetFaces, gmVert, tmpVert)
                         distMove = sqrt(sum((cfg.GridLoc(iVertOut(i),:) - tmpVert) .^ 2)) * 1000;
-                        disp(sprintf('DUNEURO> Dipole #%d moved inside the GM (%1.2fmm)', iVertOut(i), distMove));
+                        disp(sprintf('DUNEURO> Dipole #%d N %d  / %d  moved inside the GM (%1.2fmm)', iVertOut(i), i ,length(iVertOut), distMove));
                         cfg.GridLoc(iVertOut(i),:) = tmpVert;
                         break;
                     end
@@ -293,7 +302,23 @@ switch (cfg.HeadModelType)
 %                     end
 %                 end
 %             end
-
+           %% save new source space to database/ can be useful for control and display results
+           if cfg.BstSaveSourceSpace
+           % New surface structure
+            NewTess = db_template('surfacemat');
+            NewTess.Comment  = 'source_space_fem';
+            NewTess.Vertices = cfg.GridLoc;
+            NewTess.Faces    = sCortex.Faces;
+            % History: File name
+            NewTess = bst_history('add', NewTess, 'create', ['fem source space, shrink: ' num2str(cfg.SrcShrink) ', forced inside ' num2str(iGM) ]);
+            % Produce a default surface filename &   Make this filename unique
+            CortexFile = file_unique(bst_fullfile(bst_fileparts(cfg.FemFile), ...
+                    sprintf('tess_sourceSpace_%dV.mat', length(NewTess.Vertices))));
+            % Save new surface in Brainstorm format
+            [sSubject, iSubject, iSurface] = bst_get('SurfaceFile', cfg.FemFile)
+            bst_save(CortexFile, NewTess, 'v7'); 
+            db_add_surface(iSubject, CortexFile, NewTess.Comment);
+           end
         end
     case 'mixed'
         % TODO : not used ?
@@ -389,6 +414,7 @@ if strcmp(dnModality, 'meg') || strcmp(dnModality, 'meeg')
     fprintf(fid, '[meg]\n');
     fprintf(fid, 'intorderadd = %d\n', cfg.MegIntorderadd);
     fprintf(fid, 'type = %s\n', cfg.MegType);
+    fprintf(fid, 'cache.enable = %s\n',bool2str(cfg.MegCacheEnable) );
     % [coils]
     fprintf(fid, '[coils]\n');
     fprintf(fid, 'filename = %s\n', CoilFile);

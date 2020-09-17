@@ -42,6 +42,7 @@ cfgDef.ElecType         = 'normal';
 % [meg]
 cfgDef.MegIntorderadd   = 0;
 cfgDef.MegType          = 'physical';
+cfgDef.MegCacheEnable  = false; % for high mesh density need to set to false
 % [solver]
 cfgDef.SolvSolverType   = 'cg';   % 'cg'= conjugate gradient
 cfgDef.SolvPrecond      = 'amg';
@@ -71,6 +72,8 @@ cfgDef.SrcRestrict       = true;
 cfgDef.SrcInit           = 'closest_vertex';
 % [brainstorm]
 cfgDef.BstSaveTransfer    = false;
+cfgDef.BstSaveSourceSpace    = false;
+
 cfgDef.BstEegTransferFile = 'eeg_transfer.dat';
 cfgDef.BstMegTransferFile = 'meg_transfer.dat';
 cfgDef.BstEegLfFile       = 'eeg_lf.dat';

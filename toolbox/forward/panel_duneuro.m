@@ -215,6 +215,12 @@ function [bstPanelNew, panelName] = CreatePanel(sProcess, sFiles) %#ok<DEFNU>
         gui_component('label', jPanelInput, '', '  mm');
         % Force source space inside grey matter
         iGM = find(CheckType(OPTIONS.FemNames, 'gray'), 1);
+        if isempty(iGM)
+            iGM = find(CheckType(OPTIONS.FemNames, 'inner'), 1);
+        end
+        if isempty(iGM)
+            iGM = find(CheckType(OPTIONS.FemNames, 'csf'), 1);
+        end
         if ~isempty(iGM)
             jCheckSrcForceInGM = gui_component('checkbox', jPanelInput, 'br', ['Force source space inside layer "' OPTIONS.FemNames{iGM} '"'], [], '', [], []);
         else
@@ -226,9 +232,21 @@ function [bstPanelNew, panelName] = CreatePanel(sProcess, sFiles) %#ok<DEFNU>
     % ==== PANEL RIGHT: OUTPUT OPTIONS ====
     jPanelOutput = gui_river([1,1], [0,6,6,6], 'Output options');
         % Save transfer matrix
-        jCheckSaveTransfer = gui_component('checkbox', jPanelOutput, '', 'Save transfer matrix', [], '', [], []);
+        jCheckSaveTransfer = gui_component('checkbox', jPanelOutput, 'br', 'Save transfer matrix', [], '', [], []);
         if (OPTIONS.BstSaveTransfer)
             jCheckSaveTransfer.setSelected(1);
+        end
+        % Save source space
+        jCheckSaveSourceSpace = gui_component('checkbox', jPanelOutput, 'br', 'Save source space', [], '', [], []);
+        if (OPTIONS.BstSaveSourceSpace)
+            jCheckSaveSourceSpace.setSelected(1);
+        end
+        if isMegOnly
+            % Enable cach memory ==> useful only for high mesh density but slower/ not required for basic meshs 
+            jCheckMegCacheEnable = gui_component('checkbox', jPanelOutput, 'br', 'Enable cache memory', [], '', [], []);
+            if (OPTIONS.MegCacheEnable)
+                jCheckMegCacheEnable.setSelected(1);
+            end
         end
     c.gridy = 4;
     jPanelRight.add(jPanelOutput, c);
@@ -287,6 +305,8 @@ function [bstPanelNew, panelName] = CreatePanel(sProcess, sFiles) %#ok<DEFNU>
                   'jTextSrcShrink',        jTextSrcShrink, ...
                   'jCheckSrcForceInGM',   jCheckSrcForceInGM, ...
                   'jCheckSaveTransfer',    jCheckSaveTransfer, ...
+                  'jCheckSaveSourceSpace',    jCheckSaveSourceSpace, ...
+                  'jCheckMegCacheEnable',    jCheckMegCacheEnable, ...
                   'UseTensor',             OPTIONS.UseTensor);
     ctrl.FemNames = OPTIONS.FemNames;
     % Create the BstPanel object that is returned by the function
@@ -427,7 +447,9 @@ function s = GetPanelContents() %#ok<DEFNU>
         s.SrcForceInGM = 0;
     end
     % Output options
-    s.BstSaveTransfer = ctrl.jCheckSaveTransfer.isSelected();
+    s.BstSaveSourceSpace = ctrl.jCheckSaveSourceSpace.isSelected();
+    s.MegCacheEnable = ctrl.jCheckMegCacheEnable.isSelected();
+
 end
 
 
@@ -476,6 +498,8 @@ function isType = CheckType(strName, strType)
             case 'gray'
                 isType = ~isempty(strfind(strName, 'brain')) || ~isempty(strfind(strName, 'grey')) || ~isempty(strfind(strName, 'gray')) || ~isempty(strfind(strName, 'gm')) || ~isempty(strfind(strName, 'cortex'));
             case 'csf'
+                isType = ~isempty(strfind(strName, 'csf')) || ~isempty(strfind(strName, 'inner'));
+            case 'inner'
                 isType = ~isempty(strfind(strName, 'csf')) || ~isempty(strfind(strName, 'inner'));
             case 'skull'
                 isType = ~isempty(strfind(strName, 'spong')) || ... % 'Skull spongia'
