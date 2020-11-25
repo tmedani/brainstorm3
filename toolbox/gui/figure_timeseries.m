@@ -4288,14 +4288,26 @@ function ScaleToFitY(hFig, ev)
 
     % ===== GET DATA =====
     if isSpectrum
+        isBands = false;
         % Get data to plot
         switch lower(FigureId.SubType)
             case 'timeseries'
                 [XVector, Freq, TfInfo, TF] = figure_timefreq('GetFigureData', hFig);
             otherwise %case 'spectrum'
                 [Time, XVector, TfInfo, TF] = figure_timefreq('GetFigureData', hFig, 'CurrentTimeIndex');
-                % Remove the first frequency bin (0) : SPECTRUM ONLY
-                if isSpectrum && ~iscell(XVector) && (size(TF,3)>1)
+                % Frequency bands (cell array of named bands): Compute center of each band
+                if iscell(XVector)
+                    isBands = true;
+                    % Multiple frequency bands
+                    if (size(XVector,1) > 1)
+                        XVector = mean(process_tf_bands('GetBounds', XVector), 2)';
+                    % One frequency band: replicate data on both ends of the band
+                    else
+                        XVector = XVector{2};
+                        TF = cat(3, TF, TF);
+                    end
+                % Remove the first frequency bin (0)
+                elseif (size(TF,3)>2)
                     iZero = find(XVector == 0);
                     if ~isempty(iZero)
                         XVector(iZero) = [];
@@ -4315,10 +4327,13 @@ function ScaleToFitY(hFig, ev)
     % Get limits of currently plotted data
     XLim = get(hAxes, 'XLim');    
     % For linear y axis spectrum, ignore very low frequencies with high amplitudes. Use the first local maximum
-    if isSpectrum && ~isequal(lower(FigureId.SubType), 'timeseries') && ...
+    if isSpectrum && ~isequal(lower(FigureId.SubType), 'timeseries') && ~isBands && ...
             any(strcmpi(TfInfo.Function, {'power', 'magnitude'})) && strcmpi(TsInfo.YScale, 'linear') && all(TF(:)>=0)
         TFmax = max(TF,[],1);
         iStartMin = find(diff(TFmax)>0,1);
+        if isempty(iStartMin)
+            iStartMin = 1;
+        end
     else
         iStartMin = 1;
     end

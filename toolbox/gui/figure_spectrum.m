@@ -1117,8 +1117,8 @@ function UpdateFigurePlot(hFig, isForced)
             LinesLabels{i} = num2str(RowNames(i));
         end
     end
-    % Remove the first frequency bin (0) : SPECTRUM ONLY
-    if isSpectrum && ~iscell(Freqs) && (size(TF,3)>1)
+    % Remove the first frequency bin (0) : SPECTRUM ONLY, EXCLUDE CONNECTIVITY
+    if isSpectrum && ~iscell(Freqs) && (size(TF,3)>1) && isempty(GlobalData.DataSet(iDS).Timefreq(iTimefreq).RowNames)
         iZero = find(Freqs == 0);
         if ~isempty(iZero)
             Freqs(iZero) = [];
@@ -1206,7 +1206,10 @@ function UpdateFigurePlot(hFig, isForced)
     DisplayFactor = 1;
     if isempty(DisplayUnits)
         % Get signal units and display factor
-        if ~isempty(GlobalData.DataSet(iDS).Timefreq(iTimefreq).Modality) && numel(GlobalData.DataSet(iDS).Timefreq(iTimefreq).AllModalities) == 1
+        % Check if relative or normalized spectrum
+        if ~isempty(strfind(TfInfo.FileName, 'relative'))
+            DisplayUnits = 'no units';
+        elseif ~isempty(GlobalData.DataSet(iDS).Timefreq(iTimefreq).Modality) && numel(GlobalData.DataSet(iDS).Timefreq(iTimefreq).AllModalities) == 1
             [valScaled, DisplayFactor, DisplayUnits] = bst_getunits(mean(sFig.Handles.DataMinMax), GlobalData.DataSet(iDS).Timefreq(iTimefreq).Modality);
         end
     end
@@ -1221,7 +1224,7 @@ function UpdateFigurePlot(hFig, isForced)
     
     % ===== DISPLAY =====
     % Clear figure
-    clf(hFig);
+    % clf(hFig);   => Commented out by FT on 17-nov-2020: not sure why this is needed
     % Plot data in the axes
     PlotHandles = PlotAxes(hFig, X, XLim, TF, TfInfo, TsInfo, sFig.Handles.DataMinMax, LinesLabels, DisplayUnits, DisplayFactor);
     hAxes = PlotHandles.hAxes;
@@ -1391,15 +1394,14 @@ function PlotHandles = PlotAxesButterfly(hAxes, PlotHandles, TfInfo, TsInfo, X, 
     % ===== YLIM =====
     % Get automatic YLim
     if (Fmax(1) ~= Fmax(2))
-        % Compute the scale
+        % Default YLim: range to cover all values
+        YLim = [Fmax(1), Fmax(2) + (Fmax(2) - Fmax(1)) * 0.02];
+        % For log display: avoid zero values
         if strcmpi(TsInfo.YScale, 'log')
-            % Avoid 0 for log scales.
-            if Fmax(1) <= 0
-                Fmax(1) = min(TF(TF(:)>0));
+            tmpMax = min(TF(TF(:)>0));
+            if (Fmax(1) <= 0) && (tmpMax < Fmax(2))
+                YLim = [tmpMax, Fmax(2)];
             end
-            YLim = Fmax;
-        else
-            YLim = [Fmax(1), Fmax(2) + (Fmax(2) - Fmax(1)) * 0.02];
         end
     else
         YLim = [-1, 1];
@@ -1411,12 +1413,53 @@ function PlotHandles = PlotAxesButterfly(hAxes, PlotHandles, TfInfo, TsInfo, X, 
     if isempty(PlotHandles.DisplayUnits)
         PlotHandles.DisplayUnits = 'signal units';
     end
-    switch lower(TfInfo.Function)
-        case 'power',      strAmp = ['Power   (' PlotHandles.DisplayUnits '^2/' TfInfo.FreqUnits ')'];
-        case 'magnitude',  strAmp = ['Magnitude   (' PlotHandles.DisplayUnits '/sqrt(' TfInfo.FreqUnits '))'];
-        case 'log',        strAmp = ['Log-power   (dB/' TfInfo.FreqUnits ')'];
-        case 'phase',      strAmp = 'Angle';
-        otherwise,         strAmp = 'No units';
+    % For older spectrum files, look in file name if normalized.
+    if ~isfield(TfInfo, 'Normalized') || isempty(TfInfo.Normalized)
+        if ~isempty(strfind(TfInfo.FileName, 'relative2020'))
+            TfInfo.Normalized = 'relative2020';
+        elseif ~isempty(strfind(TfInfo.FileName, 'relative'))
+            TfInfo.Normalized = 'relative';
+        elseif ~isempty(strfind(TfInfo.FileName, 'multiply2020'))
+            TfInfo.Normalized = 'multiply2020';
+        elseif ~isempty(strfind(TfInfo.FileName, 'multiply'))
+            TfInfo.Normalized = 'multiply';
+        else
+            TfInfo.Normalized = 'none';
+        end
+    end
+    switch TfInfo.Normalized
+        case {'relative', 'relative2020'}
+            switch lower(TfInfo.Function)
+                % Relative is always compared to total power, then sqrt when magnitude.
+                case 'power',      strAmp = 'Relative power per bin   (no units)';
+                case 'magnitude',  strAmp = 'Sqrt relative power per bin  (no units)';
+                case 'log',        strAmp = 'Log relative power per bin  (dB)';
+                otherwise,         strAmp = 'No units';
+            end
+        case 'multiply2020'
+            % Normalized by frequency.
+            switch lower(TfInfo.Function)
+                case 'power',      strAmp = ['Normalized power   (' PlotHandles.DisplayUnits '^2)'];
+                case 'magnitude',  strAmp = ['Normalized magnitude   (' PlotHandles.DisplayUnits ')'];
+                case 'log',        strAmp = 'Log normalized power   (dB)';
+                otherwise,         strAmp = 'No units';
+            end
+        case 'multiply'
+            % Normalized by frequency squared.
+            switch lower(TfInfo.Function)
+                case 'power',      strAmp = ['Power   (' PlotHandles.DisplayUnits '^2*' TfInfo.FreqUnits ')'];
+                case 'magnitude',  strAmp = ['Magnitude   (' PlotHandles.DisplayUnits '*sqrt(' TfInfo.FreqUnits '))'];
+                case 'log',        strAmp = 'Log normalized power   (dB)';
+                otherwise,         strAmp = 'No units';
+            end
+        otherwise
+            switch lower(TfInfo.Function)
+                case 'power',      strAmp = ['Power   (' PlotHandles.DisplayUnits '^2/' TfInfo.FreqUnits ')'];
+                case 'magnitude',  strAmp = ['Magnitude   (' PlotHandles.DisplayUnits '/sqrt(' TfInfo.FreqUnits '))'];
+                case 'log',        strAmp = 'Log power   (dB)';
+                case 'phase',      strAmp = 'Angle';
+                otherwise,         strAmp = 'No units';
+            end
     end
     ylabel(hAxes, strAmp, ...
         'FontSize',    bst_get('FigFont'), ...
