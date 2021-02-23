@@ -1331,6 +1331,7 @@ function errMsg = RefineMesh(filenameRelative)
      bst_progress('start', 'Refine FEM mesh ','Loading surounding 3D points ');
     % Install iso2mesh if needed
     if ~exist('iso2meshver', 'file') || ~isdir(bst_fullfile(bst_fileparts(which('iso2meshver')), 'doc'))
+        isInteractive =1;
         errMsg = InstallIso2mesh(isInteractive);
         if ~isempty(errMsg) || ~exist('iso2meshver', 'file') || ~isdir(bst_fullfile(bst_fileparts(which('iso2meshver')), 'doc'))
             return;
