@@ -441,7 +441,7 @@ bst_figures('SetCurrentFigure', hFig, '2D');
 if isDisplayTab
     panel_display('UpdatePanel', hFig);
 end
-% Update 3D figure selection
+% Update  figure selection
 if ismember(TopoType, {'3DSensorCap', '3DElectrodes', '3DOptodes'})
     bst_figures('SetCurrentFigure', hFig, '3D');
 end

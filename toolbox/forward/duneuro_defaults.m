@@ -79,7 +79,8 @@ cfgDef.BstMegLfFile       = 'meg_lf.dat';
 % [MEG computation Options]
 cfgDef.UseIntegrationPoint = 1; 
 cfgDef.EnableCacheMemory = 0;
-cfgDef.MegPerBlockOfSensor = 0; % ToDo
+cfgDef.MegMegBlock = 0; 
+cfgDef.MegDivider = 4;
 % Use default values if not set
 if (nargin == 0) || isempty(cfg)
     cfg = cfgDef;
@@ -134,7 +135,3 @@ cfg = struct_copy_fields(cfg, cfgDef, 0);
 % fprintf(fid, 'reference  = %s\n',cfg.minifile.wrapper.outputtreecompare.reference);
 % fprintf(fid, 'type  = %s\n',cfg.minifile.wrapper.outputtreecompare.type);
 % fprintf(fid, 'absolute  = %s\n',cfg.minifile.wrapper.outputtreecompare.absolute);
-
-
-
-
