@@ -997,3 +997,98 @@ function NewFemFile = SwitchHexaTetra(FemFile) %#ok<DEFNU>
         NewFemFile = fem_tetra2hexa(FemFullFile);
     end
 end
+
+
+%% ===== COMPUTE FEM MESH VOLUME =====
+function volume = ComputeFemVolume(FemFile)
+    bst_progress('start', 'Load FEM mesh file', 'Loading file...');
+
+    FemFullFile = file_fullpath(FemFile);
+    femmat = load(FemFullFile);
+    
+    bst_progress('progress', 'Compute Volume', 'Loading file...');
+    allVol = elemvolume(1000*femmat.Vertices,femmat.Elements);
+    vol = zeros(1, length(unique(femmat.Tissue)));
+    for iTissue = 1 : length(unique(femmat.Tissue))
+        vol(iTissue) = sum(allVol(femmat.Tissue ==iTissue));    
+        volume.(femmat.TissueLabels{iTissue}) = vol(iTissue)*1.e-6;        
+    end
+    volume.allTissue = sum(allVol)*1.e-6;
+     
+    % display the volume info:
+    ProtocolInfo = bst_get('ProtocolInfo');
+    filePath = ProtocolInfo.SUBJECTS;
+    fileBase = file_win2unix(strrep(FemFullFile, filePath, ''));    
+    nbSeparators = 6 + max(length(filePath), length(fileBase));
+    MatString = sprintf('\nPath: %s\nName: %s\n%s\n  |  %s', filePath, fileBase, repmat('-', [1,nbSeparators]), 'Volume of the FEM mesh tisssues :');
+    MatString = [MatString '(x10^6 mm^3)']; % @ francois : is it possible to display on latex format?
+    % Window title
+    wndTitle = fileBase;
+    MatString = [MatString str_format(volume)];
+    
+   % Open text viewer
+   view_text( MatString, wndTitle );
+   bst_progress('stop');
+
+end
+
+
+%% ===== COMPUTE TISSUE  VOLUME =====
+function volume = ComputeTissueVolume(iSubject, iAnatomy)
+    bst_progress('start', 'Load tissue file', 'Loading file...');
+
+    
+    % Get subject
+    sSubject = bst_get('Subject', iSubject);
+    % ===== LOAD INPUT =====
+    % Load Brainstorm MRI
+    MriFile = sSubject.Anatomy(iAnatomy).FileName; %  view_mri(MriFile)
+    disp(['BST> Using tissue segmentation: ' MriFile]);
+    sMri = in_mri_bst(MriFile);
+    % Get the labeles and compute the volume
+    TissueLabels = {'white', 'gray', 'csf', 'skull', 'scalp'};
+    voxelVolum = sMri.Voxsize(1)*sMri.Voxsize(2)*sMri.Voxsize(3);
+%     indTissues = [1 2 3 4 5];
+    for iTissue = 1:length(TissueLabels)
+%         iTissue
+%         sum(find(sMri.Cube==iTissue))
+        vol(iTissue) = sum(find(sMri.Cube==iTissue))*voxelVolum;
+        volume.(TissueLabels{iTissue}) = vol(iTissue)*1.e-13;        
+    end
+    volume.allTissue = sum(vol)*1.e-13;    
+    
+    
+    FullFile = file_fullpath(sSubject.FileName);
+    
+    
+    
+%     FemFullFile = file_fullpath(FemFile);
+%     femmat = load(FemFullFile);
+%     
+%     bst_progress('progress', 'Compute Volume', 'Loading file...');
+%     allVol = elemvolume(1000*femmat.Vertices,femmat.Elements);
+%     vol = zeros(1, length(unique(femmat.Tissue)));
+%     for iTissue = 1 : length(unique(femmat.Tissue))
+%         vol(iTissue) = sum(allVol(femmat.Tissue ==iTissue));    
+%         volume.(femmat.TissueLabels{iTissue}) = vol(iTissue)*1.e-6;        
+%     end
+%     volume.allTissue = sum(allVol)*1.e-6;
+     
+    % display the volume info:
+    ProtocolInfo = bst_get('ProtocolInfo');
+    filePath = ProtocolInfo.SUBJECTS;
+    fileBase = file_win2unix(strrep(FullFile, filePath, ''));    
+    nbSeparators = 6 + max(length(filePath), length(fileBase));
+    MatString = sprintf('\nPath: %s\nName: %s\n%s\n  |  %s', filePath, fileBase, repmat('-', [1,nbSeparators]), 'Volume of the FEM mesh tisssues :');
+    MatString = [MatString '(x10^6 mm^3)']; % @ francois : is it possible to display on latex format?
+    % Window title
+    wndTitle = fileBase;
+    MatString = [MatString str_format(volume)];
+    
+   % Open text viewer
+   view_text( MatString, wndTitle );
+   bst_progress('stop');
+
+end
+
+

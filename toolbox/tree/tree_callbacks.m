@@ -1206,6 +1206,7 @@ switch (lower(action))
                     gui_component('MenuItem', jPopup, [], 'Merge layers', IconLoader.ICON_FEM, [], @(h,ev)bst_call(@fem_mergelayers, filenameFull));
                     gui_component('MenuItem', jPopup, [], 'Extract surfaces', IconLoader.ICON_FEM, [], @(h,ev)bst_call(@import_femlayers, iSubject, filenameFull, 'BSTFEM', 1));
                     gui_component('MenuItem', jPopup, [], 'Convert tetra/hexa', IconLoader.ICON_FEM, [], @(h,ev)bst_call(@process_fem_mesh, 'SwitchHexaTetra', filenameRelative));
+                    gui_component('MenuItem', jPopup, [], 'Compute Mesh Volume', IconLoader.ICON_FEM, [], @(h,ev)bst_call(@process_fem_mesh, 'ComputeFemVolume', filenameRelative));
                     AddSeparator(jPopup);
                     gui_component('MenuItem', jPopup, [], 'Resect neck', IconLoader.ICON_FEM, [], @(h,ev)bst_call(@fem_resect, filenameFull));
                     AddSeparator(jPopup);
@@ -3002,6 +3003,7 @@ function fcnMriSegment(jPopup, sSubject, iSubject, iAnatomy, isAtlas)
     elseif (length(iAnatomy) == 1) && ~isempty(strfind(sSubject.Anatomy(iAnatomy).Comment, 'tissues'))
         gui_component('MenuItem', jPopup, [], 'Generate triangular meshes', IconLoader.ICON_SURFACE_SCALP, [], @(h,ev)bst_call(@tess_meshlayer, sSubject.Anatomy(iAnatomy).FileName));
         gui_component('MenuItem', jPopup, [], 'Generate hexa mesh (FieldTrip)', IconLoader.ICON_FEM, [], @(h,ev)bst_call(@process_ft_prepare_mesh_hexa, 'ComputeInteractive', iSubject, iAnatomy));
+        gui_component('MenuItem', jPopup, [], 'Compute tissue volume', IconLoader.ICON_FEM, [], @(h,ev)bst_call(@process_fem_mesh, 'ComputeTissueVolume',iSubject, iAnatomy));
     end
 end
 
