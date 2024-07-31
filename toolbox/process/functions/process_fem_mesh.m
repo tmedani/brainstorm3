@@ -1560,3 +1560,117 @@ function NewFemFile = SwitchHexaTetra(FemFile) %#ok<DEFNU>
         NewFemFile = fem_tetra2hexa(FemFullFile);
     end
 end
+
+%% ===== Refine Mesh =====
+function errMsg = RefineMesh(filenameRelative) 
+     bst_progress('start', 'Refine FEM mesh ','Loading surounding 3D points ');
+    % Install iso2mesh if needed
+    if ~exist('iso2meshver', 'file') || ~isdir(bst_fullfile(bst_fileparts(which('iso2meshver')), 'doc'))
+        isInteractive =1;
+        errMsg = InstallIso2mesh(isInteractive);
+        if ~isempty(errMsg) || ~exist('iso2meshver', 'file') || ~isdir(bst_fullfile(bst_fileparts(which('iso2meshver')), 'doc'))
+            return;
+        end
+    end    
+    
+    % ask for option : list of the node where to apply the refinement
+    [res, isCancel]  = java_dialog('radio', 'Select the surounding region to refine :', 'Refine FEM Mesh', [], ...
+       {['<HTML><B> Area surrounding  the cortex (source space)</B><BR>' ], ...
+        ['<HTML><B> Area surrounding  the electrodes (do not apply for MEG)</B><BR>'], ...
+        ['<HTML><B> Area surrounding  the cortex and electrodes</B><BR>'], ...
+        ['<HTML><B> [TODO] Area surounding the 3D points loaded from file/matlab (x,y,z) positions</B><BR>']}, 1);
+    if isCancel || isempty(str2double(res))
+        return
+    end
+    suroundingRegion = res;
+    % ask for the factor that will be applied / divided the mean edege
+    % length by this factor
+    [res, isCancel]  = java_dialog('input', 'Factor of refinement (mean edge length divided by this factor):', ...
+        'Refinement Mesh factor', [], '5');
+    if isCancel || isempty(str2double(res))
+        return
+    end
+    refinementFactor = str2double(res);    
+    % ===== Get subject/study information =====
+    % Get study
+    sStudy = bst_get('Study')  ;
+    if isempty(sStudy.Channel) || isempty(sStudy.Channel.FileName)
+        errMessage = 'No channel file available.';
+    end
+    % Get current subject
+    [sSubject, iSubject] = bst_get('Subject', sStudy.BrainStormSubject);
+    if isempty(sSubject) || isempty(sSubject.iCortex)
+        errMessage = 'No cortex surface available for this subject.';
+    end
+    % Loading surounding 3D points 
+    bst_progress('text', 'Loading surounding 3D points ');
+    switch suroundingRegion
+        case 1 % load the active cortexe vertices
+            disp('load the cortexe vertices...')
+            CortexFile = file_fullpath(sSubject.Surface(sSubject.iCortex).FileName);
+            CortexPosition = in_bst_data(CortexFile,'Vertices');
+            refiningPosition = CortexPosition.Vertices;
+        case 2 % load the electrode position
+            disp('load the electrode position...')
+            % Load channel description
+            ChannelFile = file_fullpath(sStudy.Channel.FileName);
+            ChannelMat = in_bst_channel(ChannelFile);
+            % List of sensors
+            iEeg  = good_channel(ChannelMat.Channel,[],'EEG');
+            iEcog = good_channel(ChannelMat.Channel,[],'ECOG');
+            iSeeg = good_channel(ChannelMat.Channel,[],'SEEG');
+            isGood = [iEeg, iEcog, iSeeg];
+            elecPosition = cat(2, ChannelMat.Channel(isGood).Loc);
+            refiningPosition = elecPosition';
+        case 3 % load the cortexe vertices and the electrodes
+            disp('load the cortexe vertices and the electrodes...')
+            disp('load the cortexe vertices...')
+            CortexFile = file_fullpath(sSubject.Surface(sSubject.iCortex).FileName);
+            CortexPosition = in_bst_data(CortexFile,'Vertices');
+            CortexPosition = CortexPosition.Vertices;
+            disp('load the electrode position...')
+            % Load channel description
+            ChannelFile = file_fullpath(sStudy.Channel.FileName);
+            ChannelMat = in_bst_channel(ChannelFile);
+            % List of sensors
+            iEeg  = good_channel(ChannelMat.Channel,[],'EEG');
+            iEcog = good_channel(ChannelMat.Channel,[],'ECOG');
+            iSeeg = good_channel(ChannelMat.Channel,[],'SEEG');
+            isGood = [iEeg, iEcog, iSeeg];
+            elecPosition = cat(2, ChannelMat.Channel(isGood).Loc)';
+            %% concatenate
+            refiningPosition = [CortexPosition; elecPosition];
+        case 4 % load the 3D points
+            disp('load the 3d points from matlab/file TODO...');
+        otherwise
+            disp('Not implemented')
+    end    
+    
+    % Get file in database
+    bst_progress('text', 'Loading headmodels ...');
+    FemFullFile = file_fullpath(filenameRelative);
+    % load the current Mesh
+    FemMat = load(FemFullFile);
+    % Get dimensions of the Elements variable
+    elemSize = whos('-file', FemFullFile, 'Elements');
+    if isempty(elemSize) || (length(elemSize.size) ~= 2) || ~ismember(elemSize.size(2), [4 8])
+        error(['Invalid FEM mesh file: ' FemFile]);
+    end
+    volElem = elemvolume(FemMat.Vertices,FemMat.Elements);
+    maxVol = max(volElem ); % will be used by the surf2mesh
+    %     %% Extract surfaces and then store them
+    % node = femat.Vertices;
+    % elem = femat.Elements;
+    %
+    % figure; plotmesh(node, elem, 'x>0')
+    % opt = node + (max(node) - min(node))/10;
+    % [newnode,newelem,newface] = meshrefine(node,elem,femath.Vertices);
+    %
+    % figure; plotmesh(newnode,newelem, 'x>0')
+    %
+    %
+    % femath.Vertices = newnode;
+    % femath.Elements = newelem(:,1:4);
+    % femath.Tissue = ones(size(newelem,1));
+
+end
