@@ -1563,7 +1563,21 @@ end
 
 %% ===== Refine Mesh =====
 function errMsg = RefineMesh(filenameRelative) 
-     bst_progress('start', 'Refine FEM mesh ','Loading surounding 3D points ');
+
+    % Get file in database
+    [sSubject, iSubject] = bst_get('SurfaceFile', filenameRelative);
+    FemFullFile = file_fullpath(filenameRelative);
+
+    % Ask refine mesh with panel_refinefem
+    OPTIONS.FemFile = FemFullFile;
+    refineOptions = gui_show_dialog('Refine FEM Mesh', @panel_refinefem, 1, [], OPTIONS);
+    if isempty(refineOptions)
+        return;
+    end
+    OPTIONS.Method = 'femMeshRefine';
+    OPTIONS.refineOptions = refineOptions;
+    % Open progress bar
+    bst_progress('start', 'Refine FEM mesh ','Loading surounding 3D points ');
     % Install iso2mesh if needed
     if ~exist('iso2meshver', 'file') || ~isdir(bst_fullfile(bst_fileparts(which('iso2meshver')), 'doc'))
         isInteractive =1;
@@ -1573,11 +1587,16 @@ function errMsg = RefineMesh(filenameRelative)
         end
     end    
     
+
+    %% Old methods, can be usefull for later
+    if 0
+
     % ask for option : list of the node where to apply the refinement
     [res, isCancel]  = java_dialog('radio', 'Select the surounding region to refine :', 'Refine FEM Mesh', [], ...
        {['<HTML><B> Area surrounding  the cortex (source space)</B><BR>' ], ...
         ['<HTML><B> Area surrounding  the electrodes (do not apply for MEG)</B><BR>'], ...
         ['<HTML><B> Area surrounding  the cortex and electrodes</B><BR>'], ...
+        ['<HTML><B> Specific FEM layer from the model</B><BR>'], ...
         ['<HTML><B> [TODO] Area surounding the 3D points loaded from file/matlab (x,y,z) positions</B><BR>']}, 1);
     if isCancel || isempty(str2double(res))
         return
@@ -1658,6 +1677,87 @@ function errMsg = RefineMesh(filenameRelative)
     end
     volElem = elemvolume(FemMat.Vertices,FemMat.Elements);
     maxVol = max(volElem ); % will be used by the surf2mesh
+
+    
+
+    % get a grid within a specific area
+    GridLoc = bst_sourcegrid(Options, SurfaceFile, BoundaryFile);
+    % Options =
+    %
+    %     struct with fields:
+    %
+    %     Method: 'isotropic'
+    %     nLayers: 17
+    %     Reduction: 3
+    %     nVerticesInit: 4000
+    %     Resolution: 2.5000e-04
+    %     FileName: []
+    % SurfaceFile =
+    %
+    %     'Subject01/tess_cortex_pial_low.mat'
+    %
+    % BoundaryFile = [];
+    end
+
+    % [newnode,newelem,newface]=meshrefine(node,elem,varargin)   
+
+    % if opt is a vector with a length that equals to that of node,
+    % !!! it seems only the inser nodes for the mesh that works fine 
+
+    % load the current Mesh
+    FemMat = load(FemFullFile);
+
+    % Extract the volum to refine
+    nLayer = length(FemMat.TissueLabels);
+
+    % refineOptions
+    elementToRefine = [];
+    layerToRefine = find(refineOptions.LayerRefine);
+    for iRefine = 1 : length(layerToRefine)
+    elementToRefine(:,iRefine) = (FemMat.Tissue == layerToRefine(iRefine));
+    end
+    elementToRefineAll = find(sum(elementToRefine,2));
+
+    node = FemMat.Vertices;
+    % elem = [FemMat.Elements(elementToRefineAll,:)   FemMat.Tissue(elementToRefineAll,:)];
+    elem = [FemMat.Elements   FemMat.Tissue];
+
+    centroid = meshcentroid(node,elem(elementToRefineAll,1:4)); size(centroid) ; size(elem)
+     
+    bst_progress('text', 'Refining Mesh ...');
+
+    [newnode,newelem] = meshrefine(node,elem,centroid(1:end-1, :)) ;  % remove one element to make the size different than elem
+    [newelemOriented, evol]=meshreorient(newnode,newelem(:,1:4));
+
+    bst_progress('text', 'Saving Refined Mesh ...');
+
+    % newelemOriented = [newelemOriented, newelem(:,5)]
+    FemMat.Vertices = newnode(:,1:3);
+    FemMat.Elements = newelemOriented(:,1:4);
+    FemMat.Tissue = newelem(:,5);
+    FemMat.Comment = [FemMat.Comment ' | refined : ' num2str(length(newnode)) 'V - ' FemMat.TissueLabels{layerToRefine}];
+
+    % Add history
+    FemMat = bst_history('add', FemMat, 'process_fem_mesh', OPTIONS);
+    % Save to database
+    FemFile = file_unique(bst_fullfile(bst_fileparts(FemFullFile), sprintf('tess_fem_%s_%dV.mat', OPTIONS.Method, length(FemMat.Vertices))));
+    bst_save(FemFile, FemMat, 'v7');
+    db_add_surface(iSubject, FemFile, FemMat.Comment);
+    bst_progress('stop');
+
+    %     old.node = node;
+%     old.elem = elem;
+% 
+%     new.node = newnode;
+%     new.elem = newelem;
+% old
+% new
+%     figure;
+%     subplot(1,2,1);    plotmesh(node, elem, 'x>0')
+%     subplot(1,2,2);    plotmesh(newnode,newelem, 'x>0')
+
+
+   
     %     %% Extract surfaces and then store them
     % node = femat.Vertices;
     % elem = femat.Elements;
