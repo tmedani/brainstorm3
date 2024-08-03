@@ -1564,29 +1564,218 @@ end
 %% ===== Refine Mesh =====
 function errMsg = RefineMesh(filenameRelative) 
 
-    % Get file in database
-    [sSubject, iSubject] = bst_get('SurfaceFile', filenameRelative);
-    FemFullFile = file_fullpath(filenameRelative);
+bst_progress('start', 'Refine FEM mesh ','Loading the FEM Mesh ');
 
-    % Ask refine mesh with panel_refinefem
-    OPTIONS.FemFile = FemFullFile;
-    refineOptions = gui_show_dialog('Refine FEM Mesh', @panel_refinefem, 1, [], OPTIONS);
-    if isempty(refineOptions)
+% Unload everything
+bst_memory('UnloadAll', 'Forced');
+% Install iso2mesh if needed
+if ~exist('iso2meshver', 'file') || ~isdir(bst_fullfile(bst_fileparts(which('iso2meshver')), 'doc'))
+    isInteractive = 1;
+    errMsg = InstallIso2mesh(isInteractive);
+    if ~isempty(errMsg) || ~exist('iso2meshver', 'file') || ~isdir(bst_fullfile(bst_fileparts(which('iso2meshver')), 'doc'))
         return;
     end
-    OPTIONS.Method = 'femMeshRefine';
-    OPTIONS.refineOptions = refineOptions;
-    % Open progress bar
-    bst_progress('start', 'Refine FEM mesh ','Loading surounding 3D points ');
-    % Install iso2mesh if needed
-    if ~exist('iso2meshver', 'file') || ~isdir(bst_fullfile(bst_fileparts(which('iso2meshver')), 'doc'))
-        isInteractive =1;
-        errMsg = InstallIso2mesh(isInteractive);
-        if ~isempty(errMsg) || ~exist('iso2meshver', 'file') || ~isdir(bst_fullfile(bst_fileparts(which('iso2meshver')), 'doc'))
-            return;
+end
+
+% Get file in database
+[sSubject, iSubject] = bst_get('SurfaceFile', filenameRelative);
+FemFullFile = file_fullpath(filenameRelative);
+MeshRefineMode = {'LayerRefine', 'RoiRefine'};
+% Ask what area to refine
+[refineMode, isCancel]  = java_dialog('radio', 'Please select the option to refine:', 'Refine FEM Mesh', [], ...
+   {['<HTML><B> Refine a specific FEM layer(s) from the model => select the layer(s)</B><BR>' ], ...
+    ['<HTML><B> Refine a specif area in the model => define the ROI to refine</B><BR>'], ...
+    ['<HTML><B> Nothing to refine</B><BR>'], ...
+    }, 1);
+if isCancel || isempty(refineMode) || (refineMode ==3)
+    return
+end
+
+% Ask user the FEM mesh refinement Order - How many itteration -
+refineOrder = java_dialog('input', 'FEM Mesh Refine Order (itteration):','FEM Mesh Refine', [], num2str(2));
+if isempty(refineOrder)
+    return
+end
+% Read user input
+refineOrder = str2double(refineOrder);
+
+OPTIONS.FemFile = FemFullFile;
+OPTIONS.refineOrder = refineOrder;
+OPTIONS.refineMode = refineMode;
+OPTIONS.Method =  MeshRefineMode{refineMode};
+%% Start the identification of the points to insert/centroides
+if refineMode == 1 % refine specific FEM layer(s)    
+    % Ask user to select the layer to refine  with panel_refinefem
+    LayerRefineOptions = gui_show_dialog('Refine FEM Mesh', @panel_refinefem, 1, [], OPTIONS);
+    if isempty(LayerRefineOptions)
+        return;
+    end
+    OPTIONS.LayerRefineOptions = LayerRefineOptions;
+    %% GET THE REFINEMENT POINTS %%
+    % load the current Mesh
+    FemMat = load(FemFullFile);
+    % Get index of the element to refine
+    elementToRefine = [];
+    layerToRefine = find(LayerRefineOptions.LayerRefine);
+    for iRefine = 1 : length(layerToRefine)
+        elementToRefine(:,iRefine) = (FemMat.Tissue == layerToRefine(iRefine));
+    end
+    elementToRefineAll = find(sum(elementToRefine,2));
+    centroid = meshcentroid(FemMat.Vertices,FemMat.Elements(elementToRefineAll,1:4));
+
+else % define an ROI in the FEM mesh to refine
+    % User can select a an available surface from the available one or
+    % create a spherical surface that can be used as ROI   
+
+    % List of all the available surfaces
+    for iSurf = 1:length(sSubject.Surface)
+        % Ignore itself
+        fullSurfFile = bst_fullfile(sSubject.Surface(iSurf).FileName);
+        if ~file_compare(fullSurfFile, OPTIONS.FemFile)
+            fullSufFileAll{iSurf} = fullSurfFile;
+            fullSurfComment{iSurf} =  sSubject.Surface(iSurf).Comment;
         end
-    end    
+    end
+
+    % Ask user to select the ROI surface
+    SurfaceList = [{'Sphere as ROI 10mm', 'Sphere as ROI 25mm'}, fullSurfComment]; % add (500mm radii, centred at 0 0 0 in scs coordinates)
+    [RoiSelect, isCancel] = java_dialog('combo', ['Select the ROI area where to apply the refinement.' 10 10 ...
+        'Warning: The ROI surface can be selected for the available surface on the subject.' 10 ...
+        'Once the edit of the ROI is completed hit the OK button on the top right.' 10 ...
+        'Do not apply the change to all the other surface, Reply NO to the message box.' 10 10 ...
+        'Select the ROI for the refinement:'], ...
+        'Refine FEM Mesh within the selected ROI', [], SurfaceList, SurfaceList{1});
+
+    if isempty(RoiSelect) || isCancel
+        return
+    end
+    % Read user input
+    indRoiSelect = find(strcmp(RoiSelect,SurfaceList));
+
+    % Create the ROI Sphere if user selected sphere
+    if (indRoiSelect == 1) || (indRoiSelect == 2)% unit sphere is defined
+        % generate a sphere and then save it to the database
+        [sph_vert, sph_faces] = tess_sphere(250);
+        % conver to 25mm radii
+        if (indRoiSelect == 1)
+            sph_vert = 10*sph_vert/1000;
+        elseif (indRoiSelect == 2)
+            sph_vert = 25*sph_vert/1000;
+        end
+
+        %% ===== SAVE ROI SPHERE TO BST =====
+        % Output structure
+        tag = sprintf('_Roi%dV', length(sph_vert));
+        OutputMat.Comment = [SurfaceList{1}, tag];
+        OutputMat.Vertices = sph_vert;
+        OutputMat.Faces    = sph_faces;
+        % Output filename
+        OutputFile = bst_fullfile(bst_fileparts(OPTIONS.FemFile), 'tess_sphereROI.mat');
+        OutputFile = file_unique(OutputFile);
+        % Save file
+        bst_save(OutputFile, OutputMat, 'v7');
+        db_add_surface(iSubject, OutputFile, OutputMat.Comment);
+    end
+
+    % Open the GUI for ROI alignement on the FEM Mesh
+    if (indRoiSelect == 1) || (indRoiSelect == 2)
+        SurfaceFile = OutputFile;
+    else
+        SurfaceFile = fullSufFileAll{indRoiSelect-2};
+        SurfaceFile = bst_fullfile(bst_fileparts(bst_fileparts(OPTIONS.FemFile)), SurfaceFile);
+    end
     
+    % Get the handle of the figure and wait until closed to continue
+    global gTessAlign;
+    tess_align_manual(OPTIONS.FemFile, SurfaceFile);
+    waitfor(gTessAlign.hFig)
+
+    %% GET THE REFINEMENT POINTS %%
+    % Load the ROI surface and load the fem mesh and find all the vertices
+    % within the ROI surface.
+    % load the current FEM Mesh
+    FemMat = load(FemFullFile);
+
+    centroid = meshcentroid(FemMat.Vertices, FemMat.Elements(:,1:4));
+    % Load surface of the ROI
+    sInner = in_tess_bst(SurfaceFile, 0);
+    % Find points outside of the boundary
+    iOutside = find(~inpolyhd(centroid, sInner.Vertices, sInner.Faces));
+    % Remove the points
+    if ~isempty(iOutside)
+        centroid(iOutside,:) = [];
+    end
+end % end of the refineme condition -FEM Layer or User Defined ROI-
+
+
+    bst_progress('text', 'Refining Mesh ...');
+    % if opt is a vector with a length that equals to that of node,
+    % [newnode,newelem] = meshrefine(FemMat.Vertices, FemMat.Elements,centroid(1:end-1, :)) ;  % remove one element to make the size different than elem
+    [newnode,newelem] = meshrefine(FemMat.Vertices,[FemMat.Elements FemMat.Tissue], centroid(1:end-1, :)) ;  % remove one element to make the size different than elem
+    [newelemOriented, evol]= meshreorient(newnode,newelem(:,1:4));
+    newelemOriented = [newelemOriented newelem(:,5)];
+    
+    % Check the refine order and refine if required
+    if OPTIONS.refineOrder > 1
+        for iOrder = 2 : OPTIONS.refineOrder
+            % refine layer(s)
+            if OPTIONS.refineMode == 1 
+                % Get index of the element to refine
+                elementToRefine = [];
+                layerToRefine = find(LayerRefineOptions.LayerRefine);
+                for iRefine = 1 : length(layerToRefine)
+                    elementToRefine(:,iRefine) = (newelemOriented(:,5) == layerToRefine(iRefine));
+                end
+                elementToRefineAll = find(sum(elementToRefine,2));
+                centroid = meshcentroid(newnode, newelemOriented(elementToRefineAll,1:4));
+            end
+
+            if OPTIONS.refineMode == 2 % refine ROIs
+                % compute centroid of the new mesh
+                centroid = meshcentroid(newnode, newelemOriented(:,1:4));
+                % Intersect the centroide with the surface
+                % Find points outside of the boundary
+                iOutside = find(~inpolyhd(centroid, sInner.Vertices, sInner.Faces));
+                % Remove the points
+                if ~isempty(iOutside)
+                    centroid(iOutside,:) = [];
+                end
+            end
+
+            bst_progress('text', ['Refining Mesh order ' num2str(iOrder) '/' num2str(OPTIONS.refineOrder)  ]);
+            [newnode,newelem] = meshrefine(newnode,newelemOriented, centroid(1:end-1, :)) ;  % remove one element to make the size different than elem
+            [newelemOriented, evol]= meshreorient(newnode,newelem(:,1:4));
+            newelemOriented = [newelemOriented newelem(:,5)];
+        end
+    end
+    %% SAVE THE OUTPUT
+    bst_progress('text', 'Saving Refined Mesh ...');
+    % newelemOriented = [newelemOriented, newelem(:,5)]
+    FemMat.Vertices = newnode(:,1:3);
+    FemMat.Elements = newelemOriented(:,1:4);
+    if size(newelemOriented,2) == 5
+        FemMat.Tissue = newelem(:,5);
+    else
+        FemMat.Tissue = ones(1,size(newelemOriented,1));
+    end
+
+    if refineMode == 1
+        FemMat.Comment = [FemMat.Comment ' | refined : ' num2str(length(newnode)) 'V - ' FemMat.TissueLabels{layerToRefine} '-order: ' num2str(OPTIONS.refineOrder)];
+    else
+        FemMat.Comment = [FemMat.Comment ' | refined : ' num2str(length(newnode)) 'V - ' OPTIONS.Method '-order: ' num2str(OPTIONS.refineOrder)];
+    end
+    % Add history
+    FemMat = bst_history('add', FemMat, 'process_fem_mesh', OPTIONS);
+    % Save to database
+    FemFile = file_unique(bst_fullfile(bst_fileparts(OPTIONS.FemFile), sprintf('tess_fem_%s_%dV.mat', OPTIONS.Method, length(FemMat.Vertices))));
+    bst_save(FemFile, FemMat, 'v7');
+    db_add_surface(iSubject, FemFile, FemMat.Comment);
+    bst_progress('stop');
+
+
+
+
+
 
     %% Old methods, can be usefull for later
     if 0
@@ -1699,52 +1888,7 @@ function errMsg = RefineMesh(filenameRelative)
     % BoundaryFile = [];
     end
 
-    % [newnode,newelem,newface]=meshrefine(node,elem,varargin)   
-
-    % if opt is a vector with a length that equals to that of node,
-    % !!! it seems only the inser nodes for the mesh that works fine 
-
-    % load the current Mesh
-    FemMat = load(FemFullFile);
-
-    % Extract the volum to refine
-    nLayer = length(FemMat.TissueLabels);
-
-    % refineOptions
-    elementToRefine = [];
-    layerToRefine = find(refineOptions.LayerRefine);
-    for iRefine = 1 : length(layerToRefine)
-    elementToRefine(:,iRefine) = (FemMat.Tissue == layerToRefine(iRefine));
-    end
-    elementToRefineAll = find(sum(elementToRefine,2));
-
-    node = FemMat.Vertices;
-    % elem = [FemMat.Elements(elementToRefineAll,:)   FemMat.Tissue(elementToRefineAll,:)];
-    elem = [FemMat.Elements   FemMat.Tissue];
-
-    centroid = meshcentroid(node,elem(elementToRefineAll,1:4)); size(centroid) ; size(elem)
-     
-    bst_progress('text', 'Refining Mesh ...');
-
-    [newnode,newelem] = meshrefine(node,elem,centroid(1:end-1, :)) ;  % remove one element to make the size different than elem
-    [newelemOriented, evol]=meshreorient(newnode,newelem(:,1:4));
-
-    bst_progress('text', 'Saving Refined Mesh ...');
-
-    % newelemOriented = [newelemOriented, newelem(:,5)]
-    FemMat.Vertices = newnode(:,1:3);
-    FemMat.Elements = newelemOriented(:,1:4);
-    FemMat.Tissue = newelem(:,5);
-    FemMat.Comment = [FemMat.Comment ' | refined : ' num2str(length(newnode)) 'V - ' FemMat.TissueLabels{layerToRefine}];
-
-    % Add history
-    FemMat = bst_history('add', FemMat, 'process_fem_mesh', OPTIONS);
-    % Save to database
-    FemFile = file_unique(bst_fullfile(bst_fileparts(FemFullFile), sprintf('tess_fem_%s_%dV.mat', OPTIONS.Method, length(FemMat.Vertices))));
-    bst_save(FemFile, FemMat, 'v7');
-    db_add_surface(iSubject, FemFile, FemMat.Comment);
-    bst_progress('stop');
-
+    
     %     old.node = node;
 %     old.elem = elem;
 % 
