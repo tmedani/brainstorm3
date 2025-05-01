@@ -1656,7 +1656,7 @@ else % define an ROI in the FEM mesh to refine
     if (indRoiSelect == 1) || (indRoiSelect == 2)% unit sphere is defined
         % generate a sphere and then save it to the database
         [sph_vert, sph_faces] = tess_sphere(250);
-        % conver to 25mm radii
+        % convert to 10mm or 25mm radii
         if (indRoiSelect == 1)
             sph_vert = 10*sph_vert/1000;
         elseif (indRoiSelect == 2)
@@ -1701,13 +1701,21 @@ else % define an ROI in the FEM mesh to refine
     sInner = in_tess_bst(SurfaceFile, 0);
     % Find points outside of the boundary
     iOutside = find(~inpolyhd(centroid, sInner.Vertices, sInner.Faces));
+
+
+
+    relabel = 0;
+    if      relabel == 1
+    insideElem = 1:length(FemMat.Elements);
+    insideElem(iOutside) = [];
+    end
     % Remove the points
     if ~isempty(iOutside)
         centroid(iOutside,:) = [];
     end
 end % end of the refineme condition -FEM Layer or User Defined ROI-
 
-
+if relabel == 0
     bst_progress('text', 'Refining Mesh ...');
     % if opt is a vector with a length that equals to that of node,
     % [newnode,newelem] = meshrefine(FemMat.Vertices, FemMat.Elements,centroid(1:end-1, :)) ;  % remove one element to make the size different than elem
@@ -1748,6 +1756,10 @@ end % end of the refineme condition -FEM Layer or User Defined ROI-
             newelemOriented = [newelemOriented newelem(:,5)];
         end
     end
+else
+    newnode = FemMat.Vertices;
+    newelemOriented = FemMat.Elements;
+end
     %% SAVE THE OUTPUT
     bst_progress('text', 'Saving Refined Mesh ...');
     % newelemOriented = [newelemOriented, newelem(:,5)]
@@ -1757,6 +1769,12 @@ end % end of the refineme condition -FEM Layer or User Defined ROI-
         FemMat.Tissue = newelem(:,5);
     else
         FemMat.Tissue = ones(1,size(newelemOriented,1));
+    end
+
+    % relabel
+    if relabel == 1
+        FemMat.Tissue(insideElem) =  max(FemMat.Tissue) + 1;
+        FemMat.TissueLabels{max(FemMat.Tissue)} = 'core'; 
     end
 
     if refineMode == 1
