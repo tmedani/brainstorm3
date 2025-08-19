@@ -44,9 +44,9 @@ RawFile   = fullfile(tutorial_dir, 'sample_epilepsy', 'data', 'tutorial_eeg.bin'
 ElcFile   = fullfile(tutorial_dir, 'sample_epilepsy', 'data', 'tutorial_electrodes.elc');
 SpikeFile = fullfile(tutorial_dir, 'sample_epilepsy', 'data', 'tutorial_spikes.txt');
 % Check if the folder contains the required files
-if ~file_exist(RawFile)
-    error(['The folder ' tutorial_dir ' does not contain the folder from the file sample_epilepsy.zip.']);
-end
+% if ~file_exist(RawFile)
+%     error(['The folder ' tutorial_dir ' does not contain the folder from the file sample_epilepsy.zip.']);
+% end
 % Subject name
 SubjectName = 'sepi01';
 
