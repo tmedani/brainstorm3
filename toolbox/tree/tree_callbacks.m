@@ -1311,6 +1311,8 @@ switch (lower(action))
                         gui_component('MenuItem', jMenuFemDisp, [], 'Display as ellipsoids (MRI)', IconLoader.ICON_FEM, [], @(h,ev)bst_call(@view_fem_tensors, filenameFull, 'ellipse'));
                         gui_component('MenuItem', jMenuFemDisp, [], 'Display as arrows (MRI)', IconLoader.ICON_FEM, [], @(h,ev)bst_call(@view_fem_tensors, filenameFull, 'arrow'));
                         AddSeparator(jMenuFemDisp);
+                        gui_component('MenuItem', jMenuFemDisp, [], 'Display as ellipsoids ToCheck (MRI)', IconLoader.ICON_FEM, [], @(h,ev)bst_call(@view_tensors, filenameFull, 'ellipse'));
+                        AddSeparator(jMenuFemDisp);
                         gui_component('MenuItem', jMenuFemDisp, [], 'Display as ellipsoids (FEM mesh)', IconLoader.ICON_FEM, [], @(h,ev)bst_call(@view_fem_tensors, filenameFull, 'ellipse', [], filenameFull));
                         gui_component('MenuItem', jMenuFemDisp, [], 'Display as arrows (FEM mesh)', IconLoader.ICON_FEM, [], @(h,ev)bst_call(@view_fem_tensors, filenameFull, 'arrow', [], filenameFull));
                         gui_component('MenuItem', jPopup, [], 'Clear FEM tensors', IconLoader.ICON_DELETE, [], @(h,ev)bst_call(@process_fem_tensors, 'ClearTensors', filenameFull));
@@ -1418,6 +1420,7 @@ switch (lower(action))
                             end
                             gui_component('MenuItem', jPopup, [], ['View ' mod{1} ' leadfield sensitivity (MRI 3D)'], IconLoader.ICON_ANATOMY, [], @(h,ev)bst_call(@view_leadfield_sensitivity, filenameRelative, mod{1}, 'Mri3D'));
                             gui_component('MenuItem', jPopup, [], ['View ' mod{1} ' leadfield sensitivity (MRI Viewer)'], IconLoader.ICON_ANATOMY, [], @(h,ev)bst_call(@view_leadfield_sensitivity, filenameRelative, mod{1}, 'MriViewer'));
+                            gui_component('MenuItem', jPopup, [], ['View ' mod{1} ' leadfield vectors as FEM tensors'], IconLoader.ICON_FEM, [], @(h,ev)bst_call(@view_tensors, GetAllFilenames(bstNodes), 'ellipse', 1));
                             AddSeparator(jPopup);
                             gui_component('MenuItem', jPopup, [], ['Apply ' mod{1} ' leadfield exclusion zone'], IconLoader.ICON_HEADMODEL, [], @(h,ev)process_headmodel_exclusionzone('ComputeInteractive', filenameRelative, mod{1}, iStudy));
                         elseif strcmpi(sStudy.HeadModel(iHeadModel).HeadModelType, 'surface')
