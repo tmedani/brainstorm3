@@ -587,6 +587,8 @@ function FigureKeyPress_Callback(hFig, keyEvent)
             ApplyCoordsToAllFigures(hFig, 'mni');
         case '*'
             ApplyCoordsToAllFigures(hFig, 'scs');
+        case {'/'}
+            ViewIn3DView(hFig, 'scs');
             
         otherwise
             % ===== PROCESS BY KEYS =====
@@ -681,6 +683,7 @@ function sliderClicked_Callback(hFig, iSlider, ev)
     if ~ev.getSource.getModel.getValueIsAdjusting
         % Update MRI display
         UpdateMriDisplay(hFig, iSlider);
+        iEegMoveAllMriCrossHairs(hFig);
     end
 end
 
@@ -859,6 +862,7 @@ function ButtonSetCoordinates_Callback(hFig)
     end
     % Move the slices
     SetLocation('mri', sMri, Handles, MRI);
+    iEegMoveAllMriCrossHairs(hFig);
 end
 
 %% ===== BUTTON VIEW 3D HEAD =====
@@ -1081,6 +1085,8 @@ function DisplayFigurePopup(hFig)
         jItem.setAccelerator(KeyStroke.getKeyStroke('=', 0));
         jItem = gui_component('MenuItem', jMenuView, [], 'Apply SCS coordinates to all figures', [], [], @(h,ev)ApplyCoordsToAllFigures(hFig, 'scs'));
         jItem.setAccelerator(KeyStroke.getKeyStroke('*', 0));
+        jItem = gui_component('MenuItem', jMenuView, [], 'View in 3D orthogonal slices', [], [], @(h,ev)ViewIn3DView(hFig, 'scs'));
+        jItem.setAccelerator(KeyStroke.getKeyStroke('/', 0));
         if isOverlay
             jItem = gui_component('MenuItem', jMenuView, [], 'Find maximum', [], [], @(h,ev)JumpMaximum(hFig));
             jItem.setAccelerator(KeyStroke.getKeyStroke('m', 0));
@@ -1626,6 +1632,7 @@ function MouseButtonDownFigure_Callback(hFig, sMri, Handles)
                 % Move crosshair according to mouse position
                 if ~isempty(hAxes)
                     MouseMoveCrosshair(hAxes, sMri, Handles);
+                    iEegMoveAllMriCrossHairs(hFig);
                 end
             % CTRL+Mouse, or Mouse right
             case 'alt'
@@ -3066,6 +3073,30 @@ function ApplyCoordsToAllFigures(hSrcFig, cs)
 end
 
 
+%% ===== VIEW IN 3D SLICES =====
+function ViewIn3DView(hFig, cs)
+    % Get figure and dataset
+    [~, ~, iDS] = bst_figures('GetFigure', hFig);
+    % Get the MRI in this figure
+    sMri = panel_surface('GetSurfaceMri', hFig);
+    % Get slices locations
+    srcHandles = bst_figures('GetFigureHandles', hFig);
+    XYZ = GetLocation(cs, sMri, srcHandles);
+    % Display subject's anatomy in MRI Viewer
+    hFig = bst_figures('GetFigureWithSurface', sMri.FileName, [], '3DViz', '');
+    if isempty(hFig)
+        view_mri_3d(sMri.FileName);
+    end
+    % Get all 3D figures figures for same DataSet
+    [hAllFig, ~, iAllDS] = bst_figures('GetFiguresByType', '3DViz');
+    hFig = hAllFig(iAllDS == iDS);
+    % Select the required point
+    for iFig = 1 : length(hFig)
+        figure_3d('SetLocationMri', hFig(iFig), cs, XYZ);
+    end
+end
+
+
 %% ===== ADD 3D VIEW =====
 function Add3DView(hFig)
     global GlobalData;
@@ -3242,3 +3273,13 @@ function SetVolumeAtlas(hFig, AnatAtlas)
 end
 
 
+%% ===== iEEG: UPDATE OTHER MRI VIEWERS =====
+function iEegMoveAllMriCrossHairs(hFig)
+    if gui_brainstorm('isTabVisible', 'iEEG')
+        global GlobalData
+        [~, ~, iDS] = bst_figures('GetFigure', hFig);
+        if ~isempty(GlobalData.DataSet(iDS).ChannelFile)
+            ApplyCoordsToAllFigures(hFig, 'scs');
+        end
+    end
+end
