@@ -179,10 +179,10 @@ function PlugDesc = GetSupported(SelPlug, UserDefVerbose)
     
     % === ANATOMY: ISO2MESH ===
     PlugDesc(end+1)              = GetStruct('iso2mesh');
-    PlugDesc(end).Version        = '1.9.8';
+    PlugDesc(end).Version        = 'github-master';
     PlugDesc(end).Category       = 'Anatomy';
     PlugDesc(end).AutoUpdate     = 1;
-    PlugDesc(end).URLzip         = 'https://github.com/fangq/iso2mesh/archive/refs/tags/v1.9.8.zip';
+    PlugDesc(end).URLzip         = 'https://github.com/fangq/iso2mesh/archive/master.zip';
     PlugDesc(end).URLinfo        = 'https://iso2mesh.sourceforge.net';
     PlugDesc(end).TestFile       = 'iso2meshver.m';
     PlugDesc(end).ReadmeFile     = 'README.txt';
@@ -746,6 +746,7 @@ function PlugDesc = GetSupported(SelPlug, UserDefVerbose)
     PlugDesc(end).LoadedFcn      = ['global ft_default; ' ...
                                     'ft_default = []; ' ...
                                     'clear ft_defaults; ' ...
+                                    'clear global defaults; ', ...
                                     'if exist(''filtfilt'', ''file''), ft_default.toolbox.signal=''matlab''; end; ' ...
                                     'if exist(''nansum'', ''file''), ft_default.toolbox.stats=''matlab''; end; ' ...
                                     'if exist(''rgb2hsv'', ''file''), ft_default.toolbox.images=''matlab''; end; ' ...
@@ -1316,6 +1317,12 @@ function [PlugDesc, SearchPlugs] = GetInstalled(SelPlug)
                     end
                 end
                 PlugDesc(iPlug).isManaged = 0;
+                % Look for process_* functions in the process folder
+                PlugProc = file_find(PlugPath, 'process_*.m', Inf, 0);
+                if ~isempty(PlugProc)
+                    % Remove absolute path: use only path relative to the plugin Path
+                    PlugDesc(iPlug).Processes = cellfun(@(c)file_win2unix(strrep(c, [PlugPath, filesep], '')), PlugProc, 'UniformOutput', 0);
+                end
             end
             PlugDesc(iPlug).Path = PlugPath;
         % Plugin installed: Managed by Brainstorm
@@ -1477,8 +1484,8 @@ function TestFilePath = GetTestFilePath(PlugDesc)
                 if ~isempty(p) && strMatchEdge(TestFilePath, bst_fileparts(p), 'start')
                     TestFilePath = [];
                 end
-            % jsonlab and jsnirfy: Ignore if found embedded in iso2mesh
-            elseif strcmpi(PlugDesc.Name, 'jsonlab') || strcmpi(PlugDesc.Name, 'jsnirfy')
+            % jsonlab, jsnirfy and jnifti: Ignore if found embedded in iso2mesh
+            elseif strcmpi(PlugDesc.Name, 'jsonlab') || strcmpi(PlugDesc.Name, 'jsnirfy') || strcmpi(PlugDesc.Name, 'jnifti')
                 p = which('iso2meshver.m');
                 if ~isempty(p) && strMatchEdge(TestFilePath, bst_fileparts(p), 'start')
                     TestFilePath = [];
@@ -2292,10 +2299,19 @@ function [isOk, errMsg, PlugDesc] = Load(PlugDesc, isVerbose)
                 break;
             % Otherwise, check in any of the subfolders
             elseif ~isempty(PlugDesc.LoadFolders)
-                for iSubDir = 1:length(PlugDesc.LoadFolders)
-                    if file_exist(bst_fullfile(PlugPath, dirList(iDir).name, PlugDesc.LoadFolders{iSubDir}, PlugDesc.TestFile))
+                % All subfolders
+                if isequal(PlugDesc.LoadFolders, '*') || isequal(PlugDesc.LoadFolders, {'*'})
+                    if ~isempty(file_find(bst_fullfile(PlugPath, dirList(iDir).name), PlugDesc.TestFile))
                         PlugDesc.SubFolder = dirList(iDir).name;
                         break;
+                    end
+                % Specific subfolders
+                else
+                    for iSubDir = 1:length(PlugDesc.LoadFolders)
+                        if file_exist(bst_fullfile(PlugPath, dirList(iDir).name, PlugDesc.LoadFolders{iSubDir}, PlugDesc.TestFile))
+                            PlugDesc.SubFolder = dirList(iDir).name;
+                            break;
+                        end
                     end
                 end
             end

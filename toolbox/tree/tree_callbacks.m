@@ -1328,6 +1328,7 @@ switch (lower(action))
                     gui_component('MenuItem', jPopup, [], 'Resect neck', IconLoader.ICON_FEM, [], @(h,ev)bst_call(@fem_resect, filenameFull));
                     AddSeparator(jPopup);
                     gui_component('MenuItem', jPopup, [], 'Compute FEM tensors', IconLoader.ICON_FEM, [], @(h,ev)bst_call(@process_fem_tensors, 'ComputeInteractive', iSubject, filenameFull));
+                    gui_component('MenuItem', jPopup, [], 'Refine FEM mesh', IconLoader.ICON_FEM, [], @(h,ev)bst_call(@process_fem_refine, 'Compute', filenameRelative));
                     % If there are tensors to display
                     varInfo = whos('-file', filenameFull, 'Tensors');
                     if ~isempty(varInfo) && all(varInfo.size >= 12)
@@ -2804,6 +2805,12 @@ end % END SWITCH( ACTION )
                 [sStudy,iStudy,iRes] = bst_get('ResultsFile', sStudy.Timefreq(iTf).DataFile);
                 if ~isempty(sStudy) && ~isempty(sStudy.Result(iRes).HeadModelType)
                     HeadModelType = sStudy.Result(iRes).HeadModelType;
+                end
+            % Try to get source model indicated in 1xN connectivity file
+            elseif ~isempty(sStudy) && ~isempty(strfind(ResultFiles{1}, '_connect1')) && strcmpi(sStudy.Timefreq(iTf).DataType, 'results')
+                TimeFreq = in_bst_timefreq(ResultFiles{1}, 0, 'HeadModelFile', 'HeadModelType');
+                if ~isempty(TimeFreq.HeadModelFile) && ~isempty(TimeFreq.HeadModelType)
+                    HeadModelType = TimeFreq.HeadModelType;
                 end
             end
         else
