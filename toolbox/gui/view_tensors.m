@@ -52,8 +52,9 @@ end
 if (nargin < 4) || isempty(AnatFile)
     AnatFile = [];
 end
-if (nargin < 3) || isempty(iTissues)
-    if strcmp(file_gettype(DataFileName), 'fem')
+% Tissues for FEM
+if strcmp(file_gettype(DataFileName), 'fem')
+    if (nargin < 3) || isempty(iTissues)
         % Load the tissue names
         FemMat = load(file_fullpath(DataFileName), 'TissueLabels');
         [res, isCancel] = java_dialog('checkbox', 'Select the tissues to display:', 'Select Tissues', [], FemMat.TissueLabels, [1, zeros(1,length(FemMat.TissueLabels)-1)]);
@@ -61,10 +62,14 @@ if (nargin < 3) || isempty(iTissues)
             return;
         end
         iTissues = find(res);
-    else
-        iTissues = 0; %'SourceSpace';
+        Modality = '';
     end
+% Leadfields
+else
+    Modality = iTissues;
+    iTissues = 0;
 end
+
 if (nargin < 2) || isempty(DisplayMode)
     DisplayMode = 'ellipse';
 end
@@ -171,12 +176,19 @@ if  strcmp(file_gettype(DataFileName), 'fem')
     end
 else
     % Load the input file LF
-    %%%%%%%%%%%%%%
-    % Get study description
-    % [sStudy, iStudy, iHeadModel] = bst_get('HeadModelFile', DataFileName{1});
-    % Load lead field matrix
-    HeadmodelMat = in_bst_headmodel(DataFileName{1});
-    L = HeadmodelMat.Gain;
+    % ===== LOAD DATA =====
+    % Load channel file
+    sStudy = bst_get('HeadModelFile', DataFileName);
+    ChannelFile = sStudy.Channel.FileName;
+    ChannelMat = in_bst_channel(sStudy.Channel.FileName, 'Channel');
+    % Get modality channels
+    iModChannels = good_channel(ChannelMat.Channel, [], Modality);
+    if isempty(iModChannels)
+        error(['No channels "' Modality '" in channel file: ' ChannelFile]);
+    end
+    % Load leadfield matrix
+    HeadmodelMat = in_bst_headmodel(DataFileName);
+    L = HeadmodelMat.Gain(iModChannels, :);
     Loc = HeadmodelMat.GridLoc';
     [m,p3] = size(L);
     p = p3/3;
@@ -229,16 +241,17 @@ if strcmp(file_gettype(DataFileName), 'fem') %
     if strcmpi(AnatType, 'subjectimage')
         TensorDisplay.tol = TensorDisplay.tol .* max(sMri.Voxsize) .* 1000;
     end
+    % Scaling factor for tensor object size
+    TensorDisplay.Factor = 4/100;
 else
-    % TensorDisplay = DataFileName;
-    TensorDisplay.tol = 0.5;
+    % Scaling factor for tensor object size
+    TensorDisplay.Factor = 2/1e6;
+    TensorDisplay.tol = 1000 * HeadmodelMat.GridOptions.Resolution / 2;
 end
 % Convert FEM element centers to voxel coordinates
 TensorDisplay.ElemCenterAnat = cs_convert(sMri, 'scs', CoordSystem, TensorDisplay.ElemCenter);
 % Save display mode
 TensorDisplay.DisplayMode = DisplayMode;
-% Scaling factor for tensor object size
-TensorDisplay.Factor = 5;
 % Initialize other properties
 TensorDisplay.CutPosition = [];
 TensorDisplay.CutDim = [];
