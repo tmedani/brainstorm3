@@ -1443,6 +1443,9 @@ switch (lower(action))
                             end
                             gui_component('MenuItem', jPopup, [], ['View ' mod{1} ' leadfield sensitivity (MRI 3D)'], IconLoader.ICON_ANATOMY, [], @(h,ev)bst_call(@view_leadfield_sensitivity, filenameRelative, mod{1}, 'Mri3D'));
                             gui_component('MenuItem', jPopup, [], ['View ' mod{1} ' leadfield sensitivity (MRI Viewer)'], IconLoader.ICON_ANATOMY, [], @(h,ev)bst_call(@view_leadfield_sensitivity, filenameRelative, mod{1}, 'MriViewer'));
+                            gui_component('MenuItem', jPopup, [], ['View ' mod{1} ' leadfield vectors as FEM tensors, ellipse'], IconLoader.ICON_FEM, [], @(h,ev)bst_call(@view_tensors, filenameRelative, 'ellipse', mod{1}));
+                            gui_component('MenuItem', jPopup, [], ['View ' mod{1} ' leadfield vectors as FEM tensors, ellipse Spow2'], IconLoader.ICON_FEM, [], @(h,ev)bst_call(@view_tensors_Spower2, filenameRelative, 'ellipse', mod{1}));
+                            
                             AddSeparator(jPopup);
                             gui_component('MenuItem', jPopup, [], ['Apply ' mod{1} ' leadfield exclusion zone'], IconLoader.ICON_HEADMODEL, [], @(h,ev)process_headmodel_exclusionzone('ComputeInteractive', filenameRelative, mod{1}, iStudy));
                         elseif strcmpi(sStudy.HeadModel(iHeadModel).HeadModelType, 'surface')
