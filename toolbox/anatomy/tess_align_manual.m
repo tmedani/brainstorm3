@@ -363,6 +363,10 @@ function buttonOk_Callback(varargin)
         Tfinal = gTessAlign.FinalTransf(1:3,4);
         % Apply transformation
         newMat.Vertices = bst_bsxfun(@plus, newMat.Vertices * Rfinal', Tfinal');
+        % Check if the surface has ContactSeeds field and then apply same transformation
+        if isfield(oldMat, 'ContactSeeds')
+            newMat.ContactSeeds = bst_bsxfun(@plus, oldMat.ContactSeeds * Rfinal', Tfinal');
+        end
        
         % History: Copy previous field
         if isfield(oldMat, 'History') && ~isempty(oldMat.History)
