@@ -149,17 +149,18 @@ Dims = 3;
 %  =================================================================================================
 % Get MEG and EEG channel indices
 iMeg  = good_channel(OPTIONS.Channel,[],'MEG');
-iRef  = good_channel(OPTIONS.Channel,[],'MEG REF');
+iMRef  = good_channel(OPTIONS.Channel,[],'MEG REF');
 iEeg  = good_channel(OPTIONS.Channel,[],'EEG');
 iEcog = good_channel(OPTIONS.Channel,[],'ECOG');
 iSeeg = good_channel(OPTIONS.Channel,[],'SEEG');
+iERef  = good_channel(OPTIONS.Channel,[],'EEG REF');
 iNirs = good_channel(OPTIONS.Channel,[],'NIRS');
 % If no channels available for one type: ignore method
 if isempty(iMeg)
     OPTIONS.MEGMethod = '';
 elseif isempty(OPTIONS.MEGMethod)
     iMeg = [];
-    iRef = [];
+    iMRef = [];
 end
 if isempty(iEeg)
     OPTIONS.EEGMethod = '';
@@ -187,8 +188,8 @@ if isempty(OPTIONS.EEGMethod) && isempty(OPTIONS.MEGMethod) && isempty(OPTIONS.E
     return;
 end
 % IGNORE 4D REFERENCES (MAGNES SENSORS): Only CTF ref matters
-if ~isempty(iRef) && ~isempty(strfind(lower(OPTIONS.Channel(iRef(1)).Comment), 'magnes'))
-    iRef = [];
+if ~isempty(iMRef) && ~isempty(strfind(lower(OPTIONS.Channel(iMRef(1)).Comment), 'magnes'))
+    iMRef = [];
 	% Display warning
     disp([10 '******************************************************************************************' 10 ...
           '******************************************************************************************' 10 ...
@@ -204,7 +205,7 @@ end
 % Get number of coils for each sensor
 nCoilsPerSensor = cellfun(@(c)size(c,2), {OPTIONS.Channel.Loc});
 % Include sensors indices in the OPTIONS structure (for DUNEuro and OpenMEEG)
-OPTIONS.iMeg  = [iMeg iRef];
+OPTIONS.iMeg  = [iMeg iMRef];
 OPTIONS.iEeg  = iEeg;
 OPTIONS.iEcog = iEcog;
 OPTIONS.iSeeg = iSeeg;
@@ -544,7 +545,7 @@ if (~isempty(OPTIONS.MEGMethod) && ~ismember(OPTIONS.MEGMethod, {'openmeeg', 'du
 
     % ===== DEFINE SPHERES FOR EACH SENSOR =====
     Param = repmat(struct('Center', [], 'Radii', []), 1, length(OPTIONS.Channel));
-    iAllMeg = [iRef, iMeg];
+    iAllMeg = [iMRef, iMeg];
     % MEG: Overlapping spheres
     if strcmpi(OPTIONS.MEGMethod, 'os_meg')
         % Start progress bar
@@ -557,9 +558,9 @@ if (~isempty(OPTIONS.MEGMethod) && ~ismember(OPTIONS.MEGMethod, {'openmeeg', 'du
         [Param(iMeg).Center] = deal(OPTIONS.Sphere.Center);
         [Param(iMeg).Radii]  = deal(OPTIONS.Sphere.Radius);
         % MEG REF: same center for all reference channels
-        if ~isempty(iRef)
-            [Param(iRef).Center] = deal(mean([Param(iMeg).Center],2));
-            [Param(iRef).Radii]  = deal(mean([Param(iMeg).Radii],2));
+        if ~isempty(iMRef)
+            [Param(iMRef).Center] = deal(mean([Param(iMeg).Center],2));
+            [Param(iMRef).Radii]  = deal(mean([Param(iMeg).Radii],2));
         end
     % MEG: Other types
     elseif ~isempty(OPTIONS.MEGMethod)
@@ -686,8 +687,8 @@ end
 %     Gain(iEeg,:) = bst_bsxfun(@minus, Gain(iEeg,:), mean(Gain(iEeg,:)));
 % end
 % ===== APPLY CTF COMPENSATORS =====
-if ~isempty(OPTIONS.MegRefCoef) && ~isempty(iRef)
-    Gain(iMeg,:) = Gain(iMeg,:) - OPTIONS.MegRefCoef * Gain(iRef,:);
+if ~isempty(OPTIONS.MegRefCoef) && ~isempty(iMRef)
+    Gain(iMeg,:) = Gain(iMeg,:) - OPTIONS.MegRefCoef * Gain(iMRef,:);
 end
 % % ===== APPLY SSP =====
 % if ~isempty(OPTIONS.Projector)
