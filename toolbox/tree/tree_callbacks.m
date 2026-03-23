@@ -1236,7 +1236,8 @@ switch (lower(action))
                 end
 
                 % === DIGITIZE (3D SCANNER) OPTION ===
-                if strcmpi(nodeType, 'other') && ~isempty(regexp(filenameRelative, 'tess_textured', 'match'))
+                isDigitize3dScanner = isempty(regexp(filenameRelative, '(aseg|svreg|isosurface)', 'once'));
+                if strcmpi(nodeType, 'other') && isDigitize3dScanner
                     gui_component('MenuItem', jPopup, [], 'Digitize (3D scanner)', IconLoader.ICON_SNAPSHOT, [], @(h,ev)bst_call(@panel_digitize, 'Start', '3DScanner', sSubject, iSubject, filenameRelative));
                     % Separator
                     AddSeparator(jPopup);
@@ -2615,8 +2616,12 @@ switch (lower(action))
                 RawFile = [];
             end
             % Folders: set acquisition date
-            if ~bst_get('ReadOnly') && (~isempty(RawFile) || isstudy)
+            if ~bst_get('ReadOnly') && isstudy
                 gui_component('MenuItem', jMenuFile, [], 'Set acquisition date', IconLoader.ICON_RAW_DATA, [], @(h,ev)panel_record('SetAcquisitionDate', iStudy));
+            end
+            % Raw and imported data: Set t0 timestamp
+            if ~bst_get('ReadOnly') && ~isstudy && ismember(nodeType, {'data', 'rawdata'})
+                gui_component('MenuItem', jMenuFile, [], 'Set datetime for time = 0s', IconLoader.ICON_LOADING, [], @(h,ev)process_set_t0_datetime('ComputeInteractive', filenameRelative));
             end
             % Raw file menus
             if ~isempty(RawFile) && isempty(strfind(RawFile, '_0ephys_'))

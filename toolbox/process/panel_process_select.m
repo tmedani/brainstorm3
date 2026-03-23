@@ -2651,6 +2651,7 @@ function [bstPanel, panelName] = CreatePanel(sFiles, sFiles2, FileTimeVector)
             catch
                 procComment = sExportProc(iProc).Comment;
             end
+            procFunc = func2str(sExportProc(iProc).Function);
             % Make sure the advanced options were reviewed
             errMsg = panel_process_select('CheckProcessAdvancedOpts', sExportProc(iProc));
             if ~isempty(errMsg)
@@ -3000,6 +3001,7 @@ function ParseProcessFolder(isForced) %#ok<DEFNU>
     defProcess = db_template('ProcessDesc');
     sProcesses = repmat(defProcess, 0);
     matlabPath = [];
+    isCompiled = bst_iscompiled;
     % Get description for each file
     for iFile = 1:length(bstFunc)
         errMsg = '';
@@ -3031,7 +3033,7 @@ function ParseProcessFolder(isForced) %#ok<DEFNU>
             errMsg = 'Unable to open file';
         end
         % Check presence of required functions in process file
-        if isempty(errMsg)
+        if isempty(errMsg) && ~isCompiled
             reqFncs = {'GetDescription', 'FormatComment', 'Run'};
             reqFncsMissing = [];
             for iReqFnc = 1 : length(reqFncs)
