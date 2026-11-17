@@ -143,7 +143,11 @@ function jnirs = detectAndFixError(jnirs)
     elseif isfield(jnirs.nirs.metaDataTags , 'KernelPortalVersion') && isfield(jnirs.nirs.probe, 'sourceLabels') && all(contains(jnirs.nirs.probe.sourceLabels,"M"))
         % Remove the name because we can't parse it (eg "M037S02")
         jnirs.nirs.probe.sourceLabels = {};
+    elseif isfield(jnirs.nirs.metaDataTags, 'ManufacturerName') && contains(jnirs.nirs.metaDataTags.ManufacturerName, 'Artinis', 'IgnoreCase', 1) && all(contains(jnirs.nirs.probe.sourceLabels,"_"))
+        % Remove the name because we can't parse it (eg ""24164_Tx1" and 24165_Tx1" refers to Tx1 from device 1 and Tx1 from device 2)
+        jnirs.nirs.probe.sourceLabels = {};
     end
+
     if iscell(jnirs.nirs.probe.detectorLabels)
         jnirs.nirs.probe.detectorLabels = convertCharsToStrings(jnirs.nirs.probe.detectorLabels);
     elseif ischar(jnirs.nirs.probe.detectorLabels)
@@ -153,9 +157,13 @@ function jnirs = detectAndFixError(jnirs)
     elseif isfield(jnirs.nirs.metaDataTags , 'KernelPortalVersion') && isfield(jnirs.nirs.probe, 'detectorLabels') && all(contains(jnirs.nirs.probe.detectorLabels,"M"))
         % Remove the name because we can't parse it (eg "M037S02")
         jnirs.nirs.probe.detectorLabels = {};
+    elseif isfield(jnirs.nirs.metaDataTags, 'ManufacturerName') && contains(jnirs.nirs.metaDataTags.ManufacturerName, 'Artinis', 'IgnoreCase', 1) && all(contains(jnirs.nirs.probe.detectorLabels,"_"))
+        % Remove the name because we can't parse it (eg ""24164_Rx1" and 24165_Rx1" refers to Rx1 from device 1 and Rx1 from device 2)
+        jnirs.nirs.probe.detectorLabels = {};
     end
+
     % Events. Convert cell array to struct array
-    if iscell(jnirs.nirs.stim)
+    if isfield(jnirs.nirs,'stim') && iscell(jnirs.nirs.stim)
        jnirs.nirs.stim =  cell2mat(jnirs.nirs.stim);
     end
 
@@ -555,6 +563,7 @@ function [Channel, good_aux] = readAuxChannels(jnirs, nSample)
     error_list  = {};
     for iAux = 1:nAux
         if ~isempty(jnirs.nirs.data.dataTimeSeries) && ~isempty(jnirs.nirs.aux(iAux).dataTimeSeries) ...
+                && isfield(jnirs.nirs.aux(iAux), 'time') ...
                 && length(jnirs.nirs.data.time) == length(jnirs.nirs.aux(iAux).time) ...
                 && isequal(expendTime(jnirs.nirs.data.time, nSample), expendTime(jnirs.nirs.aux(iAux).time,nSample)) ...
                 && ( ~isfield(jnirs.nirs.aux(iAux), 'timeOffset') ||  jnirs.nirs.aux(iAux).timeOffset == 0)

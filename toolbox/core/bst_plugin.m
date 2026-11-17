@@ -15,11 +15,11 @@ function [varargout] = bst_plugin(varargin)
 %                  Version = bst_plugin('CompareVersions',      v1, v2)                      % Compare two version strings
 %           [isOk, errMsg] = bst_plugin('AddUserDefDesc',       RegMethod, jsonLocation=[])  % Register user-defined plugin definition
 %           [isOk, errMsg] = bst_plugin('RemoveUserDefDesc'     PlugName)                    % Remove user-defined plugin definition
-% [isOk, errMsg, PlugDesc] = bst_plugin('Load',                 PlugName/PlugDesc, isVerbose=1)
+% [isOk, errMsg, PlugDesc] = bst_plugin('Load',                 PlugName/PlugDesc, isVerbose=1, ignoreRequiredPlugs=0)
 % [isOk, errMsg, PlugDesc] = bst_plugin('LoadInteractive',      PlugName/PlugDesc)
 % [isOk, errMsg, PlugDesc] = bst_plugin('Unload',               PlugName/PlugDesc, isVerbose=1)
 % [isOk, errMsg, PlugDesc] = bst_plugin('UnloadInteractive',    PlugName/PlugDesc)
-% [isOk, errMsg, PlugDesc] = bst_plugin('Install',              PlugName, isInteractive=0, minVersion=[]) % Install and Load a plugin and its dependencies
+% [isOk, errMsg, PlugDesc] = bst_plugin('Install',              PlugName, isInteractive=0, minVersion=[], ignoreRequiredPlugs=0) % Install and Load a plugin and its dependencies
 % [isOk, errMsg, PlugDesc] = bst_plugin('InstallMultipleChoice',PlugNames, isInteractive=0)  % Install at least one of the input plugins
 % [isOk, errMsg, PlugDesc] = bst_plugin('InstallInteractive',   PlugName)
 %           [isOk, errMsg] = bst_plugin('Uninstall',            PlugName, isInteractive=0, isDependencies=1)
@@ -209,15 +209,9 @@ function PlugDesc = GetSupported(SelPlug, UserDefVerbose)
     PlugDesc(end+1)              = GetStruct('resection-identification');
     PlugDesc(end).Version        = 'latest';
     PlugDesc(end).Category       = 'Anatomy';
-    PlugDesc(end).AutoUpdate     = 1;
-    PlugDesc(end).URLzip         = ['https://neuroimage.usc.edu/bst/getupdate.php?d=bst_resection_identification_' OsType '.zip'];
-    PlugDesc(end).TestFile       = 'resection_identification';
-    if strcmp(OsType, 'win64')
-        PlugDesc(end).TestFile   = [PlugDesc(end).TestFile, '.bat'];
-    end
-    PlugDesc(end).URLinfo        = 'https://github.com/ajoshiusc/auto_resection_mask/tree/brainstorm-plugin';
+    PlugDesc(end).URLinfo        = 'https://github.com/ajoshiusc/auto_resection_mask/tree/brainstorm-container';
+    PlugDesc(end).ImageSource    = ['docker.io/brainstormtools/auto-resection-mask:' PlugDesc(end).Version];
     PlugDesc(end).CompiledStatus = 1;
-    PlugDesc(end).LoadFolders    = {'bin'};
 
     % === ANATOMY: ROAST ===
     PlugDesc(end+1)              = GetStruct('roast');
@@ -248,9 +242,9 @@ function PlugDesc = GetSupported(SelPlug, UserDefVerbose)
 
     % === ARTIFACTS: GEDAI ===
     PlugDesc(end+1)              = GetStruct('gedai');
-    PlugDesc(end).Version        = '3b613b8c';
+    PlugDesc(end).Version        = 'main';
     PlugDesc(end).Category       = 'Artifacts';
-    PlugDesc(end).URLzip         = 'https://github.com/neurotuning/GEDAI-master/archive/3b613b8cf3e6736b6a3b7e1fe35b6066afc312cf.zip';
+    PlugDesc(end).URLzip         = 'https://github.com/neurotuning/GEDAI-master/archive/main.zip';
     PlugDesc(end).URLinfo        = 'https://github.com/neurotuning/GEDAI-master';
     PlugDesc(end).TestFile       = 'process_gedai.m';
     PlugDesc(end).ReadmeFile     = 'README.md';
@@ -706,34 +700,38 @@ function PlugDesc = GetSupported(SelPlug, UserDefVerbose)
     
     % === fNIRS: MCXLAB CUDA ===
     PlugDesc(end+1)              = GetStruct('mcxlab-cuda');
-    PlugDesc(end).Version        = '2024.07.23';
+    PlugDesc(end).Version        = '2026.11.01';
     PlugDesc(end).Category       = 'fNIRS';
     PlugDesc(end).AutoUpdate     = 1;
-    PlugDesc(end).URLzip         = 'https://mcx.space/nightly/release/git20240723/mcxlab-allinone-git20240723.zip';
+    PlugDesc(end).URLzip         = 'https://mcx.space/nightly/release/v2026/mcxlab-allinone-v2026.zip';
     PlugDesc(end).TestFile       = 'mcxlab.m';
     PlugDesc(end).URLinfo        = 'https://mcx.space/wiki/';
     PlugDesc(end).CompiledStatus = 0;
     PlugDesc(end).LoadFolders    = {'*'};
+    PlugDesc(end).ReadmeFile     = 'NEWS';
+    PlugDesc(end).DeleteFiles    = {'octave', 'examples', 'test', 'tutorials'};
     PlugDesc(end).UnloadPlugs    = {'mcxlab-cl'};
 
     % === fNIRS: MCXLAB CL ===
     PlugDesc(end+1)              = GetStruct('mcxlab-cl');
-    PlugDesc(end).Version        = '2024.07.23';
+    PlugDesc(end).Version        = '2026.11.01';
     PlugDesc(end).Category       = 'fNIRS';
-    PlugDesc(end).AutoUpdate     = 0;
-    PlugDesc(end).URLzip         = 'https://mcx.space/nightly/release/git20240723/mcxlabcl-allinone-git20240723.zip';
+    PlugDesc(end).AutoUpdate     = 1;
+    PlugDesc(end).URLzip         = 'https://mcx.space/nightly/release/v2026/mcxlabcl-allinone-v2026.zip';
     PlugDesc(end).TestFile       = 'mcxlabcl.m';
     PlugDesc(end).URLinfo        = 'https://mcx.space/wiki/';
     PlugDesc(end).CompiledStatus = 2;
     PlugDesc(end).LoadFolders    = {'*'};
+    PlugDesc(end).ReadmeFile     = 'NEWS';
+    PlugDesc(end).DeleteFiles    = {'octave', 'examples', 'test'};
     PlugDesc(end).UnloadPlugs    = {'mcxlab-cuda'};
 
     % === sEEG: GARDEL ===
     PlugDesc(end+1)              = GetStruct('gardel');
     PlugDesc(end).Version        = 'latest';
     PlugDesc(end).Category       = 'sEEG';
-    PlugDesc(end).URLzip         = 'https://gitlab-dynamap.timone.univ-amu.fr/public_shared_tools/gardel/-/archive/GARDEL_Brainstorm/gardel-GARDEL_Brainstorm.zip';
-    PlugDesc(end).URLinfo        = 'https://gitlab-dynamap.timone.univ-amu.fr/public_shared_tools/gardel/-/wikis/home';
+    PlugDesc(end).URLzip         = 'https://dynamap-gitlab.ins-amu.fr/public_shared_tools/gardel/-/archive/GARDEL_Brainstorm/gardel-GARDEL_Brainstorm.zip';
+    PlugDesc(end).URLinfo        = 'https://dynamap-gitlab.ins-amu.fr/public_shared_tools/gardel/-/wikis/home';
     PlugDesc(end).TestFile       = 'code/Functions/elec_auto_segmentation.m';
     PlugDesc(end).ReadmeFile     = 'README.md';
     PlugDesc(end).CompiledStatus = 2;
@@ -1127,7 +1125,7 @@ function [Version, URLzip] = GetVersionOnline(PlugName, URLzip, isCache)
                 disp(['BST> Checking latest online version for ' PlugName '...']);
                 str = bst_webread('https://neuroimage.usc.edu/bst/getversion_duneuro.php');
                 Version = str(1:6);
-           case 'nirstorm'
+            case 'nirstorm'
                 bst_progress('text', ['Checking latest online version for ' PlugName '...']);
                 disp(['BST> Checking latest online version for ' PlugName '...']);
                 str = bst_webread('https://raw.githubusercontent.com/Nirstorm/nirstorm/master/bst_plugin/VERSION');
@@ -1142,6 +1140,10 @@ function [Version, URLzip] = GetVersionOnline(PlugName, URLzip, isCache)
                 % If downloading from GitHub: Get last GitHub commit SHA
                 if isGithubSnapshot(URLzip)
                     Version = GetGithubCommit(URLzip);
+                % Try to get Manifest SHA for container plugins
+                elseif IsContainer(PlugName)
+                    PlugDesc = GetDescription(PlugName);
+                    [~, Version] = bst_containers('GetOnlineManifest', PlugDesc.ImageSource);
                 else
                     return;
                 end
@@ -1183,7 +1185,8 @@ end
 % Returns 1 if the URL is a souce-code archive or snapshot (as .zip or .tar.gz) of a GitHub repository
 % https://docs.github.com/en/repositories/working-with-files/using-files/downloading-source-code-archives
 function isOk = isGithubSnapshot(URLzip)
-    isOk = strMatchEdge(URLzip, 'https://github.com/', 'start') && ...
+    isOk = ~isempty(URLzip) && ...
+           strMatchEdge(URLzip, 'https://github.com/', 'start') && ...
            ~isempty(strfind(URLzip, '/archive/')) && ...
            (strMatchEdge(URLzip, '.zip', 'end') || strMatchEdge(URLzip, '.tar.gz', 'end'));
 end
@@ -1414,6 +1417,13 @@ function [PlugDesc, SearchPlugs] = GetInstalled(SelPlug)
             PlugDesc(iPlug).Path = PlugPath;
             PlugDesc(iPlug).isLoaded = 0;
             PlugDesc(iPlug).isManaged = 1;
+            % Container plugin installed: Check if it is loaded aka running
+            if IsContainer(SearchPlugs(iSearch))
+                [containerErr, containerInfo] = bst_containers('GetContainerInfo', ['bst_' PlugDesc(iPlug).Name]);
+                if isempty(containerErr)
+                    PlugDesc(iPlug).isLoaded = containerInfo.isRunning;
+                end
+            end
         % Plugin installed: Custom path
         elseif isfield(PluginCustomPath, PlugName) && ~isempty(PluginCustomPath.(PlugName)) && file_exist(PluginCustomPath.(PlugName))
             iPlug = length(PlugDesc) + 1;
@@ -1580,10 +1590,23 @@ function TestFilePath = GetTestFilePath(PlugDesc)
                 if ~isempty(p) && strMatchEdge(TestFilePath, bst_fileparts(p), 'start')
                     TestFilePath = [];
                 end
-            % jsonlab, jsnirfy and jnifti: Ignore if found embedded in iso2mesh
-            elseif strcmpi(PlugDesc.Name, 'jsonlab') || strcmpi(PlugDesc.Name, 'jsnirfy') || strcmpi(PlugDesc.Name, 'jnifti')
+            % jsonlab: Ignore if found embedded in iso2mesh
+            elseif strcmpi(PlugDesc.Name, 'jsonlab')
                 p = which('iso2meshver.m');
                 if ~isempty(p) && strMatchEdge(TestFilePath, bst_fileparts(p), 'start')
+                    TestFilePath = [];
+                end
+            % jsnirfy: Ignore if found embedded in iso2mesh
+            elseif strcmpi(PlugDesc.Name, 'jsnirfy')
+                p = which('iso2meshver.m');
+                if ~isempty(p) && strMatchEdge(TestFilePath, bst_fileparts(p), 'start')
+                    TestFilePath = [];
+                end
+            % jnifti: Ignore if found embedded in iso2mesh or jsonlab
+            elseif strcmpi(PlugDesc.Name, 'jnifti')
+                p = which('iso2meshver.m');
+                q = which('savejson.m');
+                if (~isempty(p) && strMatchEdge(TestFilePath, bst_fileparts(p), 'start')) || (~isempty(q) && strMatchEdge(TestFilePath, bst_fileparts(q), 'start'))
                     TestFilePath = [];
                 end
             % easyh5: Ignore if found embedded in iso2mesh or jsonlab
@@ -1674,11 +1697,14 @@ end
 
 
 %% ===== INSTALL =====
-% USAGE:  [isOk, errMsg, PlugDesc] = bst_plugin('Install', PlugName, isInteractive=0, minVersion=[])
-function [isOk, errMsg, PlugDesc] = Install(PlugName, isInteractive, minVersion)
+% USAGE:  [isOk, errMsg, PlugDesc] = bst_plugin('Install', PlugName, isInteractive=0, minVersion=[], ignoreRequiredPlugs=0)
+function [isOk, errMsg, PlugDesc] = Install(PlugName, isInteractive, minVersion, ignoreRequiredPlugs)
     % Returned variables
     isOk = 0;
     % Parse inputs
+    if (nargin < 4) || isempty(ignoreRequiredPlugs)
+        ignoreRequiredPlugs = 0;
+    end
     if (nargin < 3) || isempty(minVersion)
         minVersion = [];
     elseif isnumeric(minVersion)
@@ -1750,7 +1776,7 @@ function [isOk, errMsg, PlugDesc] = Install(PlugName, isInteractive, minVersion)
       
     % === PROCESS DEPENDENCIES ===
     % Check required plugins
-    if ~isempty(PlugDesc.RequiredPlugs)
+    if ~isempty(PlugDesc.RequiredPlugs) && ~ignoreRequiredPlugs
         bst_progress('text', ['Processing dependencies for ' PlugName '...']);
         disp(['BST> Processing dependencies: ' PlugName ' requires: ' sprintf('%s ', PlugDesc.RequiredPlugs{:,1})]);
         % Get the list of plugins that need to be installed
@@ -1798,10 +1824,19 @@ function [isOk, errMsg, PlugDesc] = Install(PlugName, isInteractive, minVersion)
         % If the plugin is not managed by Brainstorm: do not check versions
         if ~OldPlugDesc.isManaged
             isUpdate = 0;
-        % If the requested version is higher
-        elseif ~isempty(minVersion) && (CompareVersions(minVersion, OldPlugDesc.Version) > 0)
-            isUpdate = 1;
-            strUpdate = ['the installed version is outdated.<BR>Minimum version required: <I>' minVersion '</I>'];
+        % Handle requested version
+        elseif ~isempty(minVersion)
+            % If the requested version is the 'latest'
+            if strcmpi(minVersion, 'latest')
+                isUpdate = 1;
+                strUpdate = '(re)install lastest version.';
+            % If the requested version is higher
+            elseif CompareVersions(minVersion, OldPlugDesc.Version) > 0
+                isUpdate = 1;
+                strUpdate = ['the installed version is outdated.<BR>Minimum version required: <I>' minVersion '</I>'];
+            else
+                isUpdate = 0;
+            end
         % If an update is available and auto-updates are requested
         elseif (PlugDesc.AutoUpdate == 1) && bst_get('AutoUpdates') && ...                                            % If updates are enabled
                 ((isGithubSnapshot(PlugDesc.URLzip) && ~strcmpi(PlugDesc.Version, OldPlugDesc.Version)) || ...          % GitHub-master: update if different commit SHA strings
@@ -1972,7 +2007,7 @@ function [isOk, errMsg, PlugDesc] = Install(PlugName, isInteractive, minVersion)
     
     % === LOAD PLUGIN ===
     % Load plugin
-    [isOk, errMsg, PlugDesc] = Load(PlugDesc);
+    [isOk, errMsg, PlugDesc] = Load(PlugDesc, [], ignoreRequiredPlugs);
     if ~isOk
         bst_progress('removeimage');
         return;
@@ -2363,9 +2398,12 @@ end
 
 
 %% ===== LOAD =====
-% USAGE:  [isOk, errMsg, PlugDesc] = Load(PlugDesc, isVerbose=1)
-function [isOk, errMsg, PlugDesc] = Load(PlugDesc, isVerbose)
+% USAGE:  [isOk, errMsg, PlugDesc] = Load(PlugDesc, isVerbose=1, ignoreRequiredPlugs=0)
+function [isOk, errMsg, PlugDesc] = Load(PlugDesc, isVerbose, ignoreRequiredPlugs)
     % Parse inputs
+    if (nargin < 3) || isempty(ignoreRequiredPlugs)
+        ignoreRequiredPlugs = 0;
+    end
     if (nargin < 2) || isempty(isVerbose)
         isVerbose = 1;
     end
@@ -2488,7 +2526,7 @@ function [isOk, errMsg, PlugDesc] = Load(PlugDesc, isVerbose)
     end
     
     % Load required plugins
-    if ~isempty(PlugDesc.RequiredPlugs)
+    if ~isempty(PlugDesc.RequiredPlugs) && ~ignoreRequiredPlugs
         for iPlug = 1:size(PlugDesc.RequiredPlugs,1)
             % disp(['BST> Loading required plugin: ' PlugDesc.RequiredPlugs{iPlug,1}]);
             [isOk, errMsg] = Load(PlugDesc.RequiredPlugs{iPlug,1}, isVerbose);
@@ -2551,7 +2589,7 @@ function [isOk, errMsg, PlugDesc] = Load(PlugDesc, isVerbose)
     end
     % Do not modify path in compiled mode
     isCompiled = bst_iscompiled();
-    if ~isCompiled
+    if ~isCompiled || ~isContainer
         % Handle case symbolic link
         try
             PlugHomeDir = builtin('_canonicalizepath', PlugHomeDir);
@@ -2700,20 +2738,20 @@ function [isOk, errMsg, PlugDesc] = Unload(PlugDesc, isVerbose)
                 end
             end
         end
-        % Stop container
-        if isContainer
-            % Retrieve info of container
-            [errMsg, containerInfo] = bst_containers('GetContainerInfo', ['bst_' PlugDesc.Name]);
-            if isempty(errMsg)
-                errMsg = bst_containers('StopContainer', ['bst_' PlugDesc.Name], 1);
-            end
-            if ~isempty(errMsg)
-                return
-            end
-            % Delete temporary files
-            for iVolume = 1 : size(containerInfo.volumes, 1)
-                file_delete(containerInfo.volumes{iVolume,1}, 1, 1);
-            end
+    end
+    % Stop container
+    if isContainer
+        % Retrieve info of container
+        [errMsg, containerInfo] = bst_containers('GetContainerInfo', ['bst_' PlugDesc.Name]);
+        if isempty(errMsg)
+            errMsg = bst_containers('StopContainer', ['bst_' PlugDesc.Name], 1);
+        end
+        if ~isempty(errMsg)
+            return
+        end
+        % Delete temporary files
+        for iVolume = 1 : size(containerInfo.volumes, 1)
+            file_delete(containerInfo.volumes{iVolume,1}, 1, 1);
         end
     end
     
@@ -3210,6 +3248,10 @@ function MenuUpdate(jMenu, fontSize)
             % Main menu: Icon
             if isCompiled && isInstalled
                 menuIcon = IconLoader.ICON_GOOD;
+                % Container plugins can be Running (Loaded) or Not (Unloaded) in Compiled
+                if isContainer && ~isLoaded
+                    menuIcon = IconLoader.ICON_BAD;
+                end
             elseif isLoaded   % Loaded
                 menuIcon = IconLoader.ICON_GOOD;
             elseif isInstalled   % Not loaded
@@ -3250,8 +3292,8 @@ function MenuUpdate(jMenu, fontSize)
                 j.custompath.setText('Path not set');
             end
             % Load/Unload
-            j.load.setEnabled(isInstalled && ~isLoaded && ~isCompiled);
-            j.unload.setEnabled(isLoaded && ~isCompiled);
+            j.load.setEnabled(isInstalled && ~isLoaded && (~isCompiled || isContainer));
+            j.unload.setEnabled(isLoaded && (~isCompiled || isContainer));
             % Web
             j.web.setEnabled(~isempty(Plug.URLinfo));
             % Extra menus: Update availability
